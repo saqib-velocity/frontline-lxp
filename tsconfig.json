@@ -5,5 +5,11 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": [
+    "app",
+    "src",
+    "global.css",
+    "nativewind-env.d.ts"
+  ]
 }
