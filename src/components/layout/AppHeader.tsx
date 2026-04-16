@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fontSizes } from '@/constants/tokens';
+import { KingWingLogo } from '@/components/KingWingLogo';
+import { colors } from '@/constants/tokens';
 
 interface AppHeaderProps {
   onNotificationPress?: () => void;
@@ -15,13 +16,7 @@ export function AppHeader({ onNotificationPress, onGridPress }: AppHeaderProps) 
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.row}>
           {/* King Wing Logo */}
-          <View style={styles.logoRow}>
-            <Ionicons name="fast-food-outline" size={26} color={colors.white} />
-            <View style={styles.logoTextBlock}>
-              <Text style={styles.logoTextKing}>KING</Text>
-              <Text style={styles.logoTextWing}>WING</Text>
-            </View>
-          </View>
+          <KingWingLogo width={84} height={36} />
 
           {/* Action icons */}
           <View style={styles.actions}>
@@ -59,28 +54,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 8,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoTextBlock: {
-    flexDirection: 'column',
-  },
-  logoTextKing: {
-    fontSize: fontSizes.sm,
-    fontWeight: '900',
-    color: colors.white,
-    letterSpacing: 1.5,
-    lineHeight: 16,
-  },
-  logoTextWing: {
-    fontSize: fontSizes.sm,
-    fontWeight: '900',
-    color: colors.white,
-    letterSpacing: 1.5,
-    lineHeight: 16,
   },
   actions: {
     flexDirection: 'row',
