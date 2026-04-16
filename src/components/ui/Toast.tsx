@@ -78,11 +78,15 @@ export function Toast({ visible, title, message, onClose }: ToastProps) {
 
 const styles = StyleSheet.create({
   container: {
+    // Absolutely positioned so it overlays content without affecting layout flow
+    position: 'absolute',
+    top: 8,
+    left: 12,
+    right: 12,
+    zIndex: 100,
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: colors.white,
-    marginHorizontal: 12,
-    marginTop: 8,
     borderRadius: radii.md,
     padding: 14,
     gap: 10,

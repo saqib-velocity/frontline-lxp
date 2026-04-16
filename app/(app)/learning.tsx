@@ -207,14 +207,6 @@ export default function LearningScreen() {
       {/* Global filter: To-Do / My learning / Events */}
       <FilterTabBar activeTab={globalFilter} onTabChange={handleGlobalFilter} />
 
-      {/* Success toast */}
-      <Toast
-        visible={toastVisible}
-        title="Signed up to event"
-        message={`You have successfully signed up to: ${toastTitle} event.`}
-        onClose={() => setToastVisible(false)}
-      />
-
       {/* Scrollable body */}
       <ScrollView
         style={styles.scroll}
@@ -279,6 +271,14 @@ export default function LearningScreen() {
 
       {/* Pinned search bar above tab bar */}
       <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
+
+      {/* Toast overlay — absolutely positioned, doesn't affect layout */}
+      <Toast
+        visible={toastVisible}
+        title="Signed up to event"
+        message={`You have successfully signed up to: ${toastTitle} event.`}
+        onClose={() => setToastVisible(false)}
+      />
     </View>
   );
 }
