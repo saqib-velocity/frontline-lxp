@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#B04500"
       },
-      "edgeToEdgeEnabled": true,
+
       "package": "com.learningpool.frontlinelxp"
     },
     "web": {
