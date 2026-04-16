@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { FilterTabBar } from '@/components/layout/FilterTabBar';
 import { MandatoryTrainingCard } from '@/components/home/MandatoryTrainingCard';
@@ -65,17 +66,25 @@ const MOCK_COURSES: Course[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const [activeTab, setActiveTab] = useState<FilterTab>('todo');
+  const router = useRouter();
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === 'desktop';
+
+  function handleFilterChange(tab: FilterTab) {
+    if (tab === 'my-learning' || tab === 'events') {
+      // Switch into the Learning tab and let it handle sub-views
+      router.navigate('/(app)/learning');
+    }
+    // 'todo' is already active — do nothing
+  }
 
   return (
     <View style={styles.root}>
       {/* Sticky header: orange bar */}
       <AppHeader />
 
-      {/* Filter tabs */}
-      <FilterTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Filter tabs — 'todo' always active on Home */}
+      <FilterTabBar activeTab="todo" onTabChange={handleFilterChange} />
 
       {/* Scrollable content */}
       <ScrollView

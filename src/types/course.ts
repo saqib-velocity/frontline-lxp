@@ -8,6 +8,26 @@ export interface Course {
   type?: string;
 }
 
+export type DueDateStatus = 'overdue' | 'warning' | 'due' | 'none';
+
+export interface LearningCourse extends Course {
+  dueDate?: string;
+  dueDateStatus?: DueDateStatus;
+}
+
+export type LocationType = 'webinar' | 'location' | 'link';
+export type EventStatus = 'invited' | 'requested' | 'attended';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: { day: string; month: string };
+  time: string;
+  locationType: LocationType;
+  locationValue: string;
+  status: EventStatus;
+}
+
 export interface TrainingPlan {
   id: string;
   title: string;
@@ -22,3 +42,5 @@ export interface TrainingPlan {
 }
 
 export type FilterTab = 'todo' | 'my-learning' | 'events';
+export type LearningSubFilter = 'assigned' | 'in-progress' | 'saved' | 'complete';
+export type EventSubFilter = 'assigned' | 'available' | 'attended';

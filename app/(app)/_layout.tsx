@@ -70,8 +70,8 @@ export default function AppLayout() {
         name="learning"
         options={{
           title: 'Learning',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon name="school-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabBarIcon name={focused ? 'school' : 'school-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -79,8 +79,8 @@ export default function AppLayout() {
         name="my-team"
         options={{
           title: 'My team',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon name="people-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabBarIcon name={focused ? 'people' : 'people-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -88,8 +88,9 @@ export default function AppLayout() {
         name="ask"
         options={{
           title: 'Ask',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon name="sparkles-outline" color={color} size={size} />
+          // Ask icon is always brand-colored per Figma (never goes gray)
+          tabBarIcon: ({ size }) => (
+            <TabBarIcon name="sparkles" color="#C24806" size={size} />
           ),
         }}
       />
