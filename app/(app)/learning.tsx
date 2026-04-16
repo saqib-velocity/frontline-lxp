@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { FilterTabBar } from '@/components/layout/FilterTabBar';
 import { SubFilterBar } from '@/components/ui/SubFilterBar';
 import { SearchBar } from '@/components/ui/SearchBar';
+import { Toast } from '@/components/ui/Toast';
 import { Card } from '@/components/ui/Card';
 import { CourseListItem } from '@/components/learning/CourseListItem';
 import { EventListItem } from '@/components/learning/EventListItem';
@@ -63,7 +64,7 @@ const LEARNING_COURSES: LearningCourse[] = [
 
 // ─── Mock data — Events ────────────────────────────────────────────────────────
 
-const EVENTS: CalendarEvent[] = [
+const BASE_EVENTS: CalendarEvent[] = [
   {
     id: 'e1',
     title: 'Culture at King Wing',
@@ -71,7 +72,11 @@ const EVENTS: CalendarEvent[] = [
     time: '12:00',
     locationType: 'webinar',
     locationValue: 'Webinar',
-    status: 'invited',
+    status: 'attending',          // already signed up per Figma
+    description: 'Event description goes here.',
+    meetingLink: 'event-meeting.link/',
+    locationLabel: 'Google Meet',
+    isMandatory: true,
   },
   {
     id: 'e2',
@@ -81,6 +86,9 @@ const EVENTS: CalendarEvent[] = [
     locationType: 'location',
     locationValue: 'London, UK',
     status: 'requested',
+    meetingLink: 'event-meeting.link/',
+    locationLabel: 'Meeting Room 1',
+    isMandatory: false,
   },
   {
     id: 'e3',
@@ -90,6 +98,9 @@ const EVENTS: CalendarEvent[] = [
     locationType: 'link',
     locationValue: 'Link',
     status: 'invited',
+    meetingLink: 'event-meeting.link/',
+    locationLabel: 'Google Meet',
+    isMandatory: false,
   },
   {
     id: 'e4',
@@ -99,6 +110,9 @@ const EVENTS: CalendarEvent[] = [
     locationType: 'location',
     locationValue: 'Lisbon, PT',
     status: 'invited',
+    meetingLink: 'event-meeting.link/',
+    locationLabel: 'Venue TBC',
+    isMandatory: true,
   },
 ];
 
@@ -119,18 +133,68 @@ const EVENT_SUB_FILTERS: { key: EventSubFilter; label: string }[] = [
 
 export default function LearningScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    toast?: string;
+    toastTitle?: string;
+    signedUpId?: string;
+  }>();
+
   const [globalFilter, setGlobalFilter] = useState<FilterTab>('my-learning');
   const [learningFilter, setLearningFilter] = useState<LearningSubFilter>('assigned');
   const [eventFilter, setEventFilter] = useState<EventSubFilter>('assigned');
   const [search, setSearch] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastTitle, setToastTitle] = useState('');
+
+  // Events state — allows updating status after sign-up
+  const [events, setEvents] = useState<CalendarEvent[]>(BASE_EVENTS);
+
+  // Show toast and flip event status when returning from event detail
+  useEffect(() => {
+    if (params.toast === 'signed_up') {
+      setGlobalFilter('events');
+      setToastVisible(true);
+      setToastTitle(params.toastTitle ?? 'event');
+
+      // Flip event status to 'attending'
+      if (params.signedUpId) {
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === params.signedUpId ? { ...e, status: 'attending' } : e
+          )
+        );
+      }
+
+      // Auto-dismiss after 4s
+      const t = setTimeout(() => setToastVisible(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [params.toast, params.toastTitle, params.signedUpId]);
 
   function handleGlobalFilter(tab: FilterTab) {
     if (tab === 'todo') {
-      // Navigate back to the Home tab
       router.navigate('/(app)/');
     } else {
       setGlobalFilter(tab);
     }
+  }
+
+  function handleEventPress(event: CalendarEvent) {
+    router.push({
+      pathname: '/event-detail' as never,
+      params: {
+        id: event.id,
+        title: event.title,
+        time: event.time,
+        locationType: event.locationType,
+        locationValue: event.locationValue,
+        day: event.date.day,
+        month: event.date.month,
+        meetingLink: event.meetingLink ?? '',
+        locationLabel: event.locationLabel ?? '',
+        isMandatory: event.isMandatory ? 'true' : 'false',
+      },
+    });
   }
 
   const isLearning = globalFilter === 'my-learning';
@@ -142,6 +206,14 @@ export default function LearningScreen() {
 
       {/* Global filter: To-Do / My learning / Events */}
       <FilterTabBar activeTab={globalFilter} onTabChange={handleGlobalFilter} />
+
+      {/* Success toast */}
+      <Toast
+        visible={toastVisible}
+        title="Signed up to event"
+        message={`You have successfully signed up to: ${toastTitle} event.`}
+        onClose={() => setToastVisible(false)}
+      />
 
       {/* Scrollable body */}
       <ScrollView
@@ -192,11 +264,12 @@ export default function LearningScreen() {
                   showDivider={i < LEARNING_COURSES.length - 1}
                 />
               ))
-            : EVENTS.map((event, i) => (
+            : events.map((event, i) => (
                 <EventListItem
                   key={event.id}
                   event={event}
-                  showDivider={i < EVENTS.length - 1}
+                  onPress={() => handleEventPress(event)}
+                  showDivider={i < events.length - 1}
                 />
               ))}
         </Card>
@@ -205,11 +278,7 @@ export default function LearningScreen() {
       </ScrollView>
 
       {/* Pinned search bar above tab bar */}
-      <SearchBar
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search"
-      />
+      <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
     </View>
   );
 }
@@ -219,12 +288,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.gray[50],
   },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 8,
-  },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 8 },
   sectionHeadRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -247,7 +312,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     overflow: 'hidden',
   },
-  bottomPad: {
-    height: 16,
-  },
+  bottomPad: { height: 16 },
 });

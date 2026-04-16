@@ -16,7 +16,7 @@ export interface LearningCourse extends Course {
 }
 
 export type LocationType = 'webinar' | 'location' | 'link';
-export type EventStatus = 'invited' | 'requested' | 'attended';
+export type EventStatus = 'invited' | 'requested' | 'attending' | 'attended';
 
 export interface CalendarEvent {
   id: string;
@@ -26,6 +26,11 @@ export interface CalendarEvent {
   locationType: LocationType;
   locationValue: string;
   status: EventStatus;
+  // detail-screen fields
+  description?: string;
+  meetingLink?: string;
+  locationLabel?: string;
+  isMandatory?: boolean;
 }
 
 export interface TrainingPlan {

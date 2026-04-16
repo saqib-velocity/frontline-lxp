@@ -58,14 +58,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: radii.full,
+    borderWidth: 1.5,
+    borderColor: colors.gray[300],
+    backgroundColor: 'transparent',
   },
   tabActive: {
     backgroundColor: colors.tabActive,
+    borderColor: colors.tabActive,
   },
   tabLabel: {
     fontSize: fontSizes.sm,
     fontWeight: '500',
-    color: colors.gray[500],
+    color: colors.gray[700],
   },
   tabLabelActive: {
     color: colors.tabActiveText,

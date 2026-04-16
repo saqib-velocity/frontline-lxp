@@ -16,44 +16,38 @@ const LOCATION_ICON: Record<LocationType, React.ComponentProps<typeof Ionicons>[
   link:     'link-outline',
 };
 
-const STATUS_STYLE: Record<EventStatus, { border: string; text: string }> = {
-  invited:  { border: '#C24806', text: '#C24806' },
-  requested:{ border: '#2563EB', text: '#2563EB' },
-  attended: { border: colors.gray[500], text: colors.gray[500] },
+// attending = blue filled pill; requested = blue outline; invited = orange outline
+type StatusConfig = { bg?: string; border: string; text: string; filled: boolean };
+const STATUS_STYLE: Record<EventStatus, StatusConfig> = {
+  invited:   { border: '#C24806', text: '#C24806', filled: false },
+  requested: { border: '#2563EB', text: '#2563EB', filled: false },
+  attending: { bg: '#2563EB', border: '#2563EB', text: '#FFFFFF', filled: true },
+  attended:  { border: colors.gray[400], text: colors.gray[500], filled: false },
 };
 
 const STATUS_LABEL: Record<EventStatus, string> = {
   invited:   'Invited',
   requested: 'Requested',
+  attending: 'Attending',
   attended:  'Attended',
 };
 
-export function EventListItem({
-  event,
-  onPress,
-  showDivider = true,
-}: EventListItemProps) {
+export function EventListItem({ event, onPress, showDivider = true }: EventListItemProps) {
   const locIcon = LOCATION_ICON[event.locationType];
-  const statusStyle = STATUS_STYLE[event.status];
+  const cfg = STATUS_STYLE[event.status];
 
   return (
     <>
-      <TouchableOpacity
-        style={styles.row}
-        onPress={onPress}
-        activeOpacity={0.75}
-      >
+      <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.75}>
         {/* Date block */}
         <View style={styles.dateBlock}>
           <Text style={styles.dateDay}>{event.date.day}</Text>
           <Text style={styles.dateMonth}>{event.date.month}</Text>
         </View>
 
-        {/* Text content */}
+        {/* Text */}
         <View style={styles.content}>
-          <Text style={styles.title} numberOfLines={2}>
-            {event.title}
-          </Text>
+          <Text style={styles.title} numberOfLines={2}>{event.title}</Text>
           <View style={styles.meta}>
             <Text style={styles.metaText}>{event.time}</Text>
             <Text style={styles.metaDot}>·</Text>
@@ -62,10 +56,13 @@ export function EventListItem({
           </View>
         </View>
 
-        {/* Status badge */}
-        <View style={[styles.statusPill, { borderColor: statusStyle.border }]}>
-          <Ionicons name="calendar-outline" size={11} color={statusStyle.text} />
-          <Text style={[styles.statusLabel, { color: statusStyle.text }]}>
+        {/* Status pill */}
+        <View style={[
+          styles.pill,
+          { borderColor: cfg.border, backgroundColor: cfg.filled ? cfg.bg : 'transparent' },
+        ]}>
+          <Ionicons name="calendar-outline" size={11} color={cfg.text} />
+          <Text style={[styles.pillLabel, { color: cfg.text }]}>
             {STATUS_LABEL[event.status]}
           </Text>
         </View>
@@ -128,7 +125,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     color: colors.gray[300],
   },
-  statusPill: {
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -138,7 +135,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     flexShrink: 0,
   },
-  statusLabel: {
+  pillLabel: {
     fontSize: fontSizes.xs,
     fontWeight: '600',
   },
