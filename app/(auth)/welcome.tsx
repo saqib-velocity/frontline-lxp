@@ -2,7 +2,6 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
@@ -11,9 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-
-// King Wing logo — white SVG from Figma (replace with local asset: require('../../assets/images/king-wing-logo.png'))
-const KING_WING_LOGO = 'https://www.figma.com/api/mcp/asset/9b9bcc27-86a6-40ee-bc77-93fbc783e907';
+import { KingWingLogo } from '../../src/components/KingWingLogo';
 
 // Brand color exactly from Figma: rgb(194, 72, 6)
 const BRAND = '#C24806';
@@ -52,11 +49,7 @@ export default function WelcomeScreen() {
 
             {/* Section 1 (flex:1): empty space with logo pinned to bottom-left */}
             <View style={styles.logoSection}>
-              <Image
-                source={{ uri: KING_WING_LOGO }}
-                style={styles.logo}
-                resizeMode="contain"
-              />
+              <KingWingLogo width={167} height={72} />
             </View>
 
             {/* Section 2 (flex:1): heading then subtitle, aligned to top */}
@@ -114,11 +107,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     alignItems: 'flex-start',
-  },
-  // King Wing logo: exactly 167×72 from Figma
-  logo: {
-    width: 167,
-    height: 72,
   },
   // Section 2 — fills lower half, text starts at the top
   textSection: {
