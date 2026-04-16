@@ -207,78 +207,81 @@ export default function LearningScreen() {
       {/* Global filter: To-Do / My learning / Events */}
       <FilterTabBar activeTab={globalFilter} onTabChange={handleGlobalFilter} />
 
-      {/* Scrollable body */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Section heading */}
-        <View style={styles.sectionHeadRow}>
-          <Ionicons
-            name={isLearning ? 'school-outline' : 'calendar-outline'}
-            size={20}
-            color={colors.gray[900]}
-          />
-          <Text style={styles.sectionTitle}>
-            {isLearning ? 'Learning' : 'Events'}
+      {/* Content area — toast is positioned absolute within this, so top:8 lands
+          just below the FilterTabBar rather than behind the AppHeader */}
+      <View style={styles.contentArea}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Section heading */}
+          <View style={styles.sectionHeadRow}>
+            <Ionicons
+              name={isLearning ? 'school-outline' : 'calendar-outline'}
+              size={20}
+              color={colors.gray[900]}
+            />
+            <Text style={styles.sectionTitle}>
+              {isLearning ? 'Learning' : 'Events'}
+            </Text>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            {isLearning
+              ? 'Browse courses you interacted with'
+              : 'Browse, discover and sign up for Events'}
           </Text>
-        </View>
-        <Text style={styles.sectionSubtitle}>
-          {isLearning
-            ? 'Browse courses you interacted with'
-            : 'Browse, discover and sign up for Events'}
-        </Text>
 
-        {/* Sub-filter pills */}
-        {isLearning ? (
-          <SubFilterBar
-            tabs={LEARNING_SUB_FILTERS}
-            activeTab={learningFilter}
-            onTabChange={(t) => setLearningFilter(t as LearningSubFilter)}
-          />
-        ) : (
-          <SubFilterBar
-            tabs={EVENT_SUB_FILTERS}
-            activeTab={eventFilter}
-            onTabChange={(t) => setEventFilter(t as EventSubFilter)}
-          />
-        )}
+          {/* Sub-filter pills */}
+          {isLearning ? (
+            <SubFilterBar
+              tabs={LEARNING_SUB_FILTERS}
+              activeTab={learningFilter}
+              onTabChange={(t) => setLearningFilter(t as LearningSubFilter)}
+            />
+          ) : (
+            <SubFilterBar
+              tabs={EVENT_SUB_FILTERS}
+              activeTab={eventFilter}
+              onTabChange={(t) => setEventFilter(t as EventSubFilter)}
+            />
+          )}
 
-        {/* List card */}
-        <Card noPadding style={styles.card}>
-          {isLearning
-            ? LEARNING_COURSES.map((course, i) => (
-                <CourseListItem
-                  key={course.id}
-                  course={course}
-                  showDivider={i < LEARNING_COURSES.length - 1}
-                />
-              ))
-            : events.map((event, i) => (
-                <EventListItem
-                  key={event.id}
-                  event={event}
-                  onPress={() => handleEventPress(event)}
-                  showDivider={i < events.length - 1}
-                />
-              ))}
-        </Card>
+          {/* List card */}
+          <Card noPadding style={styles.card}>
+            {isLearning
+              ? LEARNING_COURSES.map((course, i) => (
+                  <CourseListItem
+                    key={course.id}
+                    course={course}
+                    showDivider={i < LEARNING_COURSES.length - 1}
+                  />
+                ))
+              : events.map((event, i) => (
+                  <EventListItem
+                    key={event.id}
+                    event={event}
+                    onPress={() => handleEventPress(event)}
+                    showDivider={i < events.length - 1}
+                  />
+                ))}
+          </Card>
 
-        <View style={styles.bottomPad} />
-      </ScrollView>
+          <View style={styles.bottomPad} />
+        </ScrollView>
 
-      {/* Pinned search bar above tab bar */}
-      <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
+        {/* Pinned search bar above tab bar */}
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
 
-      {/* Toast overlay — absolutely positioned, doesn't affect layout */}
-      <Toast
-        visible={toastVisible}
-        title="Signed up to event"
-        message={`You have successfully signed up to: ${toastTitle} event.`}
-        onClose={() => setToastVisible(false)}
-      />
+        {/* Toast — absolute within contentArea, appears just below FilterTabBar */}
+        <Toast
+          visible={toastVisible}
+          title="Signed up to event"
+          message={`You have successfully signed up to: ${toastTitle} event.`}
+          onClose={() => setToastVisible(false)}
+        />
+      </View>
     </View>
   );
 }
@@ -287,6 +290,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.gray[50],
+  },
+  contentArea: {
+    flex: 1,
+    // position:relative is default in RN — toast's absolute top:8
+    // is measured from here, not from the root (behind the header)
   },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 8 },
