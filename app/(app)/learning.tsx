@@ -294,10 +294,9 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    // position:relative is default in RN — toast's absolute top:8
-    // is measured from here, not from the root (behind the header)
+    backgroundColor: colors.gray[50],
   },
-  scroll: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: colors.gray[50] },
   scrollContent: { paddingBottom: 8 },
   sectionHeadRow: {
     flexDirection: 'row',
