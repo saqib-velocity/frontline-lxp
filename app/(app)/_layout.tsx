@@ -8,23 +8,28 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-// ─── Blurred tab bar background (iOS glass) ───────────────────────────────────
+// ─── Glass background (iOS frosted bar) ───────────────────────────────────────
 
-function TabBarBackground() {
+function TabBarGlass() {
   return (
     <BlurView
-      tint="systemChromeMaterial"
-      intensity={100}
+      tint="light"
+      intensity={90}
       style={StyleSheet.absoluteFill}
     />
   );
 }
 
-// ─── Icon helper ──────────────────────────────────────────────────────────────
+// ─── Shared screen options ────────────────────────────────────────────────────
 
-function icon(focused: boolean, active: IoniconName, inactive: IoniconName, color: string) {
-  return <Ionicons name={focused ? active : inactive} size={24} color={color} />;
-}
+const MOBILE_BAR_STYLE = {
+  position: 'absolute' as const,
+  backgroundColor: 'transparent',
+  borderTopWidth: StyleSheet.hairlineWidth,
+  borderTopColor: 'rgba(0,0,0,0.12)',
+  elevation: 0,
+  shadowOpacity: 0,
+};
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +38,6 @@ export default function AppLayout() {
   const isDesktop = Platform.OS === 'web' && breakpoint === 'desktop';
 
   if (isDesktop) {
-    // Desktop web: left-rail sidebar (no blur needed)
     return (
       <Tabs
         screenOptions={{
@@ -52,78 +56,99 @@ export default function AppLayout() {
           tabBarLabelStyle: { fontSize: 13, fontWeight: '500' },
         }}
       >
-        {screens()}
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="learning"
+          options={{
+            title: 'Learning',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'school' : 'school-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="my-team"
+          options={{
+            title: 'My team',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="ask"
+          options={{
+            title: 'Ask',
+            tabBarIcon: ({ focused }) => (
+              <Ionicons name="sparkles" size={24} color={colors.brand.primary} />
+            ),
+          }}
+        />
       </Tabs>
     );
   }
 
-  // Mobile / tablet: standard iOS-style tab bar with glass background
+  // Mobile / tablet — frosted glass tab bar
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        // Make tab bar float over content so the blur shows the screen behind it
-        tabBarStyle: {
-          position: 'absolute',
-          backgroundColor: 'transparent',
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: 'rgba(0,0,0,0.15)',
-          elevation: 0,        // Android: remove shadow behind the blur
-          shadowOpacity: 0,    // iOS: remove default shadow (blur provides depth)
-        },
-        tabBarBackground: () => <TabBarBackground />,
+        tabBarStyle: MOBILE_BAR_STYLE,
+        tabBarBackground: () => <TabBarGlass />,
         tabBarActiveTintColor: colors.gray[900],
         tabBarInactiveTintColor: colors.gray[400],
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '500',
-          marginBottom: 2,
         },
       }}
     >
-      {screens()}
-    </Tabs>
-  );
-}
-
-function screens() {
-  return (
-    <>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) =>
-            icon(focused, 'home', 'home-outline', color),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="learning"
         options={{
           title: 'Learning',
-          tabBarIcon: ({ color, focused }) =>
-            icon(focused, 'school', 'school-outline', color),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'school' : 'school-outline'} size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="my-team"
         options={{
           title: 'My team',
-          tabBarIcon: ({ color, focused }) =>
-            icon(focused, 'people', 'people-outline', color),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="ask"
         options={{
           title: 'Ask',
-          // Always brand-orange — AI assistant is always highlighted
-          tabBarIcon: ({ focused }) =>
-            icon(focused, 'sparkles', 'sparkles', colors.brand.primary),
           tabBarActiveTintColor: colors.brand.primary,
           tabBarInactiveTintColor: colors.brand.primary,
+          tabBarIcon: () => (
+            <Ionicons name="sparkles" size={24} color={colors.brand.primary} />
+          ),
         }}
       />
-    </>
+    </Tabs>
   );
 }
