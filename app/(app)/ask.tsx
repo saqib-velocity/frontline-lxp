@@ -8,9 +8,10 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Animated,
   Image,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SvgXml } from 'react-native-svg';
@@ -20,13 +21,116 @@ import { AskLogo } from '@/components/ask/AskLogo';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ChatMode = 'empty' | 'typing' | 'thinking' | 'response';
-type AskTab = 'chat' | 'search';
+type AskTab   = 'chat' | 'search';
+type InputMode = 'text' | 'voice';
 
-// ─── Gradient sparkles icon (used inline in header + suggestions) ─────────────
+interface CourseItem {
+  id: string;
+  title: string;
+  lessons: string;
+  duration: string;
+  image: string;
+}
 
-const SPARK_SVG = (size: number) => `
-<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+interface FeaturedCourse {
+  id: string;
+  title: string;
+  rating: string;
+  duration: string;
+  image: string;
+}
+
+interface UserMsg {
+  id: string;
+  role: 'user';
+  text: string;
+}
+
+interface AIThinkingMsg {
+  id: string;
+  role: 'ai';
+  state: 'thinking';
+}
+
+interface AIResponseMsg {
+  id: string;
+  role: 'ai';
+  state: 'done';
+  text: string;
+  courses?: CourseItem[];
+  featuredCourse?: FeaturedCourse;
+}
+
+type ChatMsg = UserMsg | AIThinkingMsg | AIResponseMsg;
+
+// ─── Static data ──────────────────────────────────────────────────────────────
+
+const RELATED_COURSES: CourseItem[] = [
+  {
+    id: 'c1',
+    title: 'Handle customer invoices',
+    lessons: '00/00',
+    duration: '15 min',
+    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=120&q=80',
+  },
+  {
+    id: 'c2',
+    title: 'Refund customer invoices',
+    lessons: '00/00',
+    duration: '15 min',
+    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=120&q=80',
+  },
+  {
+    id: 'c3',
+    title: 'Invoice compliance & tax',
+    lessons: '00/00',
+    duration: '20 min',
+    image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=120&q=80',
+  },
+];
+
+const FEATURED_COURSE: FeaturedCourse = {
+  id: 'fc1',
+  title: 'Course name goes here and extends further',
+  rating: '4/5',
+  duration: '15 min',
+  image: 'https://images.unsplash.com/photo-1598135753163-6167c1a1ad65?w=600&q=80',
+};
+
+const PROMPT_CHIPS = [
+  'What courses are due this week?',
+  'Summarise my team compliance',
+  'Find fire safety training',
+  "What's new in my learning plan?",
+  'Help me prepare for a 1:1',
+];
+
+const RESPONSE_TEXT_1 =
+  'To send an invoice, first create it using invoicing software or a template. Include your business details, the client\'s information, a description of the services or products, and the total amount due. Once completed, save the invoice as a PDF and email it to your client, or use an invoicing platform to send it directly.';
+
+const RESPONSE_TEXT_2 =
+  "Sure thing, here's what I'd recommend to improve your skills on the topic:";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function lerp(a: number, b: number, t: number) {
+  return Math.round(a + (b - a) * t);
+}
+
+function barColor(i: number, total: number): string {
+  const t = i / Math.max(total - 1, 1);
+  if (t < 0.5) {
+    const u = t * 2;
+    return `rgb(${lerp(249, 236, u)},${lerp(115, 72, u)},${lerp(22, 153, u)})`;
+  }
+  const u = (t - 0.5) * 2;
+  return `rgb(${lerp(236, 168, u)},${lerp(72, 85, u)},${lerp(153, 247, u)})`;
+}
+
+// ─── SVG icons ────────────────────────────────────────────────────────────────
+
+const SPARK_SVG = (sz: number) => `
+<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="sg" x1="0" y1="1" x2="1" y2="0" gradientUnits="objectBoundingBox">
       <stop offset="0%"   stop-color="#F97316"/>
@@ -39,160 +143,76 @@ const SPARK_SVG = (size: number) => `
   <path d="M5.5 14 L6.3 16.7 L9 17.5 L6.3 18.3 L5.5 21 L4.7 18.3 L2 17.5 L4.7 16.7 Z" fill="url(#sg)"/>
 </svg>`;
 
-function GradientSparkIcon({ size = 20 }: { size?: number }) {
+function GradientSpark({ size = 20 }: { size?: number }) {
   return <SvgXml xml={SPARK_SVG(size)} width={size} height={size} />;
 }
 
-// ─── Prompt chips (empty state) ───────────────────────────────────────────────
-
-const PROMPT_CHIPS = [
-  'What courses are due this week?',
-  'Summarise my team compliance',
-  'Find fire safety training',
-  'What\'s new in my learning plan?',
-  'Help me prepare for 1:1',
-];
-
-// ─── Ask AI suggestions (typing state) ───────────────────────────────────────
-
-const ASK_SUGGESTIONS = [
-  'What compliance training is overdue?',
-  'Show me leadership courses',
-  'Summarise last week\'s team activity',
-  'Find courses on customer service',
-];
-
-// ─── Thinking steps ───────────────────────────────────────────────────────────
-
-const THINKING_STEPS = [
-  { id: 'think',    label: 'Thinking' },
-  { id: 'search',   label: 'Searching' },
-  { id: 'browse',   label: 'Browsing knowledge base' },
-  { id: 'courses',  label: 'Looking through courses' },
-];
-
-// ─── Related courses (response state) ────────────────────────────────────────
-
-const RELATED_COURSES = [
-  {
-    id: '1',
-    title: 'Fire Safety Fundamentals',
-    duration: '45 min',
-    category: 'Compliance',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=120&q=80',
-  },
-  {
-    id: '2',
-    title: 'Customer Service Excellence',
-    duration: '1h 20 min',
-    category: 'Skills',
-    image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=120&q=80',
-  },
-  {
-    id: '3',
-    title: 'Health & Safety at Work',
-    duration: '30 min',
-    category: 'Compliance',
-    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=120&q=80',
-  },
-];
-
-// ─── Spinner SVG (thinking state) ────────────────────────────────────────────
-
-const SPINNER_SVG = `
-<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#F97316"/>
-      <stop offset="100%" stop-color="#A855F7"/>
-    </linearGradient>
-  </defs>
-  <circle cx="8" cy="8" r="6" fill="none" stroke="url(#spg)" stroke-width="2"
-    stroke-dasharray="28" stroke-dashoffset="10" stroke-linecap="round"/>
-</svg>`;
-
 // ─── AskHeader ────────────────────────────────────────────────────────────────
 
-function AskHeader({ onClose }: { onClose?: () => void }) {
+function AskHeader({ onNewChat }: { onNewChat: () => void }) {
   return (
-    <View style={hdrStyles.row}>
-      {/* Left icons */}
-      <View style={hdrStyles.leftIcons}>
-        <TouchableOpacity style={hdrStyles.iconBtn} activeOpacity={0.7}>
-          <Ionicons name="document-text-outline" size={20} color={colors.gray[700]} />
+    <View style={hdrS.row}>
+      <View style={hdrS.side}>
+        <TouchableOpacity style={hdrS.iconBtn} activeOpacity={0.7}>
+          <Ionicons name="document-text-outline" size={19} color={colors.gray[700]} />
         </TouchableOpacity>
-        <TouchableOpacity style={hdrStyles.iconBtn} activeOpacity={0.7}>
-          <Ionicons name="create-outline" size={20} color={colors.gray[700]} />
+        <TouchableOpacity style={hdrS.iconBtn} activeOpacity={0.7}>
+          <Ionicons name="create-outline" size={19} color={colors.gray[700]} />
         </TouchableOpacity>
       </View>
 
-      {/* Center: sparkle + "Ask" */}
-      <View style={hdrStyles.center}>
-        <GradientSparkIcon size={18} />
-        <Text style={hdrStyles.title}>Ask</Text>
+      <View style={hdrS.center}>
+        <GradientSpark size={18} />
+        <Text style={hdrS.title}>Ask</Text>
       </View>
 
-      {/* Right: close */}
-      <View style={hdrStyles.rightIcons}>
-        {onClose ? (
-          <TouchableOpacity style={hdrStyles.iconBtn} onPress={onClose} activeOpacity={0.7}>
-            <Ionicons name="close-circle" size={22} color={colors.gray[400]} />
-          </TouchableOpacity>
-        ) : (
-          <View style={hdrStyles.iconBtn} />
-        )}
+      <View style={[hdrS.side, { alignItems: 'flex-end' }]}>
+        <TouchableOpacity style={hdrS.closeBtn} onPress={onNewChat} activeOpacity={0.7}>
+          <Ionicons name="close" size={16} color={colors.gray[500]} />
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const hdrStyles = StyleSheet.create({
+const hdrS = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     backgroundColor: colors.white,
   },
-  leftIcons: { flexDirection: 'row', gap: 4, width: 72 },
-  center:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rightIcons:{ width: 72, alignItems: 'flex-end' },
+  side:  { flexDirection: 'row', gap: 4, width: 76 },
+  center:{ flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { fontSize: fontSizes.base, fontWeight: '700', color: colors.gray[900] },
   iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 34, height: 34, borderRadius: 17,
     backgroundColor: colors.gray[100],
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  title: {
-    fontSize: fontSizes.base,
-    fontWeight: '700',
-    color: colors.gray[900],
+  closeBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: colors.gray[100],
+    alignItems: 'center', justifyContent: 'center',
   },
 });
 
-// ─── Segmented tabs (Chat / Search) ──────────────────────────────────────────
+// ─── Segmented tabs ───────────────────────────────────────────────────────────
 
-function AskSegmentedTabs({
-  active,
-  onChange,
-}: {
-  active: AskTab;
-  onChange: (t: AskTab) => void;
-}) {
+function AskTabs({ active, onChange }: { active: AskTab; onChange: (t: AskTab) => void }) {
   return (
-    <View style={segStyles.track}>
-      {(['chat', 'search'] as AskTab[]).map((tab) => (
+    <View style={tabS.track}>
+      {(['chat', 'search'] as AskTab[]).map((t) => (
         <TouchableOpacity
-          key={tab}
-          style={[segStyles.tab, active === tab && segStyles.tabActive]}
-          onPress={() => onChange(tab)}
+          key={t}
+          style={[tabS.tab, active === t && tabS.tabActive]}
+          onPress={() => onChange(t)}
           activeOpacity={0.8}
         >
-          <Text style={[segStyles.label, active === tab && segStyles.labelActive]}>
-            {tab === 'chat' ? 'Chat' : 'Search'}
+          <Text style={[tabS.label, active === t && tabS.labelActive]}>
+            {t === 'chat' ? 'Chat' : 'Search'}
           </Text>
         </TouchableOpacity>
       ))}
@@ -200,442 +220,545 @@ function AskSegmentedTabs({
   );
 }
 
-const segStyles = StyleSheet.create({
+const tabS = StyleSheet.create({
   track: {
     flexDirection: 'row',
     backgroundColor: colors.gray[100],
     borderRadius: radii.full,
     padding: 3,
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   tab: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: radii.full,
-    alignItems: 'center',
+    flex: 1, paddingVertical: 7,
+    borderRadius: radii.full, alignItems: 'center',
   },
   tabActive: {
     backgroundColor: colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.08, shadowRadius: 4, elevation: 2,
   },
-  label: {
-    fontSize: fontSizes.sm,
-    fontWeight: '500',
-    color: colors.gray[500],
-  },
-  labelActive: {
-    fontWeight: '700',
-    color: colors.gray[900],
-  },
+  label:       { fontSize: fontSizes.sm, fontWeight: '500', color: colors.gray[500] },
+  labelActive: { fontWeight: '700', color: colors.gray[900] },
 });
 
-// ─── Gradient border input ────────────────────────────────────────────────────
+// ─── User bubble ─────────────────────────────────────────────────────────────
 
-function GradientInput({
-  value,
-  onChangeText,
-  onFocus,
-  onSubmit,
-  focused,
-  inputRef,
-}: {
-  value: string;
-  onChangeText: (t: string) => void;
-  onFocus: () => void;
-  onSubmit: () => void;
-  focused: boolean;
-  inputRef: React.RefObject<TextInput | null>;
-}) {
+function UserBubble({ text }: { text: string }) {
   return (
-    <View style={giStyles.wrapper}>
-      {/* Gradient border ring — only shown when focused */}
-      {focused ? (
-        <LinearGradient
-          colors={['#F97316', '#EC4899', '#A855F7']}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          style={giStyles.gradientBorder}
-        >
-          <View style={giStyles.innerBox}>
-            <InputInner
-              value={value}
-              onChangeText={onChangeText}
-              onFocus={onFocus}
-              onSubmit={onSubmit}
-              inputRef={inputRef}
-            />
-          </View>
-        </LinearGradient>
-      ) : (
-        <View style={giStyles.plainBorder}>
-          <InputInner
-            value={value}
-            onChangeText={onChangeText}
-            onFocus={onFocus}
-            onSubmit={onSubmit}
-            inputRef={inputRef}
-          />
-        </View>
-      )}
+    <View style={ubS.bubble}>
+      <Text style={ubS.text}>{text}</Text>
     </View>
   );
 }
 
-function InputInner({
-  value,
-  onChangeText,
-  onFocus,
-  onSubmit,
-  inputRef,
-}: {
-  value: string;
-  onChangeText: (t: string) => void;
-  onFocus: () => void;
-  onSubmit: () => void;
-  inputRef: React.RefObject<TextInput | null>;
-}) {
-  return (
-    <View style={giStyles.inputRow}>
-      <GradientSparkIcon size={18} />
-      <TextInput
-        ref={inputRef}
-        style={giStyles.textInput}
-        placeholder="Ask anything..."
-        placeholderTextColor={colors.gray[400]}
-        value={value}
-        onChangeText={onChangeText}
-        onFocus={onFocus}
-        returnKeyType="send"
-        onSubmitEditing={onSubmit}
-        multiline={false}
-      />
-      {value.length > 0 && (
-        <TouchableOpacity onPress={onSubmit} activeOpacity={0.8}>
-          <LinearGradient
-            colors={['#F97316', '#A855F7']}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 1, y: 0 }}
-            style={giStyles.sendBtn}
-          >
-            <Ionicons name="arrow-up" size={14} color={colors.white} />
-          </LinearGradient>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-const giStyles = StyleSheet.create({
-  wrapper: { marginHorizontal: 16, marginBottom: 8 },
-  gradientBorder: {
-    borderRadius: radii.full,
-    padding: 2,
-  },
-  innerBox: {
-    backgroundColor: colors.white,
-    borderRadius: radii.full - 2,
-    overflow: 'hidden',
-  },
-  plainBorder: {
-    borderRadius: radii.full,
-    borderWidth: 1.5,
-    borderColor: colors.gray[200],
-    backgroundColor: colors.white,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+const ubS = StyleSheet.create({
+  bubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.gray[100],
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: fontSizes.sm,
-    color: colors.gray[900],
-    padding: 0,
-  },
-  sendBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
-
-// ─── Typing: Ask AI suggestion rows ──────────────────────────────────────────
-
-function SuggestionRow({
-  text,
-  onPress,
-}: {
-  text: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity style={srStyles.row} onPress={onPress} activeOpacity={0.7}>
-      <GradientSparkIcon size={18} />
-      <Text style={srStyles.text} numberOfLines={1}>
-        {text}
-      </Text>
-      <Ionicons name="chevron-forward" size={16} color={colors.gray[400]} />
-    </TouchableOpacity>
-  );
-}
-
-const srStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.gray[200],
-    backgroundColor: colors.white,
+    paddingVertical: 10,
+    maxWidth: '88%',
   },
   text: {
-    flex: 1,
     fontSize: fontSizes.sm,
     color: colors.gray[900],
+    lineHeight: fontSizes.sm * 1.55,
   },
 });
 
-// ─── Thinking steps ───────────────────────────────────────────────────────────
+// ─── Thinking bubble ──────────────────────────────────────────────────────────
 
-function ThinkingSteps({ activeStep }: { activeStep: number }) {
+function ThinkingBubble() {
+  const spin = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 900, useNativeDriver: true })
+    ).start();
+  }, []);
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
   return (
-    <View style={tsStyles.container}>
-      {THINKING_STEPS.map((step, i) => {
-        const done    = i < activeStep;
-        const current = i === activeStep;
-        const pending = i > activeStep;
-
-        return (
-          <View key={step.id} style={tsStyles.row}>
-            {/* Icon column */}
-            <View style={tsStyles.iconCol}>
-              {done ? (
-                <View style={tsStyles.doneCircle}>
-                  <Ionicons name="checkmark" size={10} color={colors.white} />
-                </View>
-              ) : current ? (
-                <SvgXml xml={SPINNER_SVG} width={16} height={16} />
-              ) : (
-                <View style={tsStyles.pendingDot} />
-              )}
-              {i < THINKING_STEPS.length - 1 && (
-                <View style={[tsStyles.connector, done && tsStyles.connectorDone]} />
-              )}
-            </View>
-
-            {/* Label */}
-            <Text
-              style={[
-                tsStyles.label,
-                done    && tsStyles.labelDone,
-                current && tsStyles.labelCurrent,
-                pending && tsStyles.labelPending,
-              ]}
-            >
-              {step.label}
-              {current ? '...' : ''}
-            </Text>
-          </View>
-        );
-      })}
+    <View style={thS.row}>
+      <Animated.View style={{ transform: [{ rotate }] }}>
+        <Ionicons name="sync-outline" size={13} color={colors.gray[400]} />
+      </Animated.View>
+      <Text style={thS.text}>Thinking...</Text>
     </View>
   );
 }
 
-const tsStyles = StyleSheet.create({
-  container: { paddingHorizontal: 16, paddingVertical: 8 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    minHeight: 32,
-  },
-  iconCol: {
-    alignItems: 'center',
-    width: 24,
-    marginRight: 10,
-  },
-  doneCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#A855F7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pendingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.gray[300],
-    margin: 4,
-  },
-  connector: {
-    width: 2,
-    flex: 1,
-    minHeight: 14,
-    backgroundColor: colors.gray[200],
-    borderRadius: 1,
-    marginTop: 3,
-  },
-  connectorDone: {
-    backgroundColor: '#A855F7',
-  },
-  label: {
-    fontSize: fontSizes.sm,
-    paddingTop: 1,
-    lineHeight: 20,
-  },
-  labelDone:    { color: colors.gray[400] },
-  labelCurrent: { color: colors.gray[900], fontWeight: '600' },
-  labelPending: { color: colors.gray[300] },
+const thS = StyleSheet.create({
+  row:  { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
+  text: { fontSize: fontSizes.sm, color: colors.gray[500], fontStyle: 'italic' },
 });
 
-// ─── Response: Related course row ─────────────────────────────────────────────
+// ─── AI Response ─────────────────────────────────────────────────────────────
 
-function RelatedCourseRow({
-  course,
+function AIResponse({
+  msg,
+  expanded,
+  onToggleExpand,
 }: {
-  course: typeof RELATED_COURSES[0];
+  msg: AIResponseMsg;
+  expanded: boolean;
+  onToggleExpand: () => void;
 }) {
+  const visibleCourses = msg.courses
+    ? expanded ? msg.courses : msg.courses.slice(0, 2)
+    : [];
+
   return (
-    <TouchableOpacity style={rcStyles.row} activeOpacity={0.7}>
-      <Image source={{ uri: course.image }} style={rcStyles.thumb} />
-      <View style={rcStyles.info}>
-        <Text style={rcStyles.title} numberOfLines={2}>{course.title}</Text>
-        <View style={rcStyles.meta}>
-          <Text style={rcStyles.metaText}>{course.category}</Text>
-          <View style={rcStyles.dot} />
-          <Text style={rcStyles.metaText}>{course.duration}</Text>
+    <View style={arS.wrapper}>
+      {/* Response text */}
+      <Text style={arS.bodyText}>{msg.text}</Text>
+
+      {/* Courses list */}
+      {msg.courses && msg.courses.length > 0 && (
+        <View style={arS.section}>
+          {/* Section header */}
+          <View style={arS.sectionHeader}>
+            <Text style={arS.sectionLabel}>Related courses</Text>
+            {msg.courses.length > 2 && (
+              <TouchableOpacity onPress={onToggleExpand} activeOpacity={0.7}>
+                <Text style={arS.showMore}>
+                  {expanded ? 'Show less ∧' : 'Show more ∨'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {/* Course rows */}
+          {visibleCourses.map((c) => (
+            <TouchableOpacity key={c.id} style={arS.courseRow} activeOpacity={0.75}>
+              <Image source={{ uri: c.image }} style={arS.thumb} />
+              <View style={arS.courseInfo}>
+                <Text style={arS.courseTitle} numberOfLines={2}>{c.title}</Text>
+                <View style={arS.courseMeta}>
+                  <Text style={arS.metaText}>{c.lessons}</Text>
+                  <View style={arS.dot} />
+                  <Ionicons name="time-outline" size={11} color={colors.gray[400]} />
+                  <Text style={arS.metaText}>{c.duration}</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={15} color={colors.gray[400]} />
+            </TouchableOpacity>
+          ))}
         </View>
+      )}
+
+      {/* Featured course card */}
+      {msg.featuredCourse && (
+        <TouchableOpacity style={arS.featuredCard} activeOpacity={0.85}>
+          <Image source={{ uri: msg.featuredCourse.image }} style={arS.featuredImage} />
+          <View style={arS.featuredBody}>
+            <Text style={arS.featuredTitle}>{msg.featuredCourse.title}</Text>
+            <View style={arS.courseMeta}>
+              <Text style={arS.metaText}>{msg.featuredCourse.rating}</Text>
+              <View style={arS.dot} />
+              <Ionicons name="time-outline" size={11} color={colors.gray[400]} />
+              <Text style={arS.metaText}>{msg.featuredCourse.duration}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {/* Feedback row */}
+      <View style={arS.feedbackRow}>
+        <TouchableOpacity style={arS.fbBtn} activeOpacity={0.7}>
+          <Ionicons name="copy-outline" size={16} color={colors.gray[400]} />
+        </TouchableOpacity>
+        <TouchableOpacity style={arS.fbBtn} activeOpacity={0.7}>
+          <Ionicons name="thumbs-up-outline" size={16} color={colors.gray[400]} />
+        </TouchableOpacity>
+        <TouchableOpacity style={arS.fbBtn} activeOpacity={0.7}>
+          <Ionicons name="thumbs-down-outline" size={16} color={colors.gray[400]} />
+        </TouchableOpacity>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={colors.gray[400]} />
-    </TouchableOpacity>
+    </View>
   );
 }
 
-const rcStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+const arS = StyleSheet.create({
+  wrapper:     { gap: 12 },
+  bodyText:    { fontSize: fontSizes.sm, color: colors.gray[900], lineHeight: fontSizes.sm * 1.65, fontWeight: '500' },
+  section:     { gap: 2 },
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 6,
+  },
+  sectionLabel: { fontSize: fontSizes.xs, color: colors.gray[400], fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  showMore:     { fontSize: fontSizes.xs, color: '#16A34A', fontWeight: '600' },
+  courseRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.gray[100],
   },
   thumb: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.sm,
+    width: 48, height: 48, borderRadius: radii.sm,
     backgroundColor: colors.gray[200],
   },
-  info: { flex: 1, gap: 4 },
-  title: {
-    fontSize: fontSizes.sm,
-    fontWeight: '600',
-    color: colors.gray[900],
-    lineHeight: fontSizes.sm * 1.4,
+  courseInfo: { flex: 1, gap: 3 },
+  courseTitle: { fontSize: fontSizes.sm, fontWeight: '600', color: colors.gray[900] },
+  courseMeta:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText:    { fontSize: fontSizes.xs, color: colors.gray[400] },
+  dot:         { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.gray[300] },
+
+  // Featured course card
+  featuredCard: {
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    backgroundColor: colors.gray[50],
+    borderWidth: 1,
+    borderColor: colors.gray[200],
   },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontSize: fontSizes.xs, color: colors.gray[500] },
-  dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.gray[300] },
+  featuredImage: { width: '100%', height: 180, backgroundColor: colors.gray[200] },
+  featuredBody:  { padding: 12, gap: 4 },
+  featuredTitle: { fontSize: fontSizes.sm, fontWeight: '700', color: colors.gray[900], lineHeight: fontSizes.sm * 1.4 },
+
+  // Feedback
+  feedbackRow: { flexDirection: 'row', gap: 2 },
+  fbBtn:       { padding: 5, borderRadius: radii.sm },
+});
+
+// ─── Chat input bar (text mode) ───────────────────────────────────────────────
+
+function ChatInputBar({
+  value,
+  onChangeText,
+  onSend,
+  onMic,
+  inputRef,
+}: {
+  value: string;
+  onChangeText: (t: string) => void;
+  onSend: () => void;
+  onMic: () => void;
+  inputRef: React.RefObject<TextInput | null>;
+}) {
+  return (
+    <View style={ciS.row}>
+      {/* + button */}
+      <TouchableOpacity style={ciS.plusBtn} activeOpacity={0.7}>
+        <Ionicons name="add" size={20} color={colors.gray[500]} />
+      </TouchableOpacity>
+
+      {/* Input pill */}
+      <View style={ciS.pill}>
+        <TextInput
+          ref={inputRef}
+          style={ciS.input}
+          placeholder="Ask anything..."
+          placeholderTextColor={colors.gray[400]}
+          value={value}
+          onChangeText={onChangeText}
+          returnKeyType="send"
+          onSubmitEditing={onSend}
+          multiline={false}
+        />
+        {value.length === 0 ? (
+          <TouchableOpacity onPress={onMic} activeOpacity={0.7} style={ciS.iconBtn}>
+            <Ionicons name="mic-outline" size={19} color={colors.gray[500]} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={onSend} activeOpacity={0.7}>
+            <LinearGradient
+              colors={['#F97316', '#A855F7']}
+              start={{ x: 0, y: 1 }}
+              end={{ x: 1, y: 0 }}
+              style={ciS.sendBtn}
+            >
+              <Ionicons name="arrow-up" size={14} color={colors.white} />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const ciS = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  plusBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray[50],
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    gap: 8,
+  },
+  input: {
+    flex: 1,
+    fontSize: fontSizes.sm,
+    color: colors.gray[900],
+    padding: 0,
+  },
+  iconBtn: { padding: 2 },
+  sendBtn: {
+    width: 26, height: 26, borderRadius: 13,
+    alignItems: 'center', justifyContent: 'center',
+  },
+});
+
+// ─── Voice capture bar ────────────────────────────────────────────────────────
+
+const BAR_COUNT = 18;
+
+function VoiceCaptureBar({
+  barAnims,
+  onStop,
+}: {
+  barAnims: Animated.Value[];
+  onStop: () => void;
+}) {
+  return (
+    <View style={vcS.wrapper}>
+      {/* Voice capturing label */}
+      <View style={vcS.labelRow}>
+        <GradientSpark size={14} />
+        <LinearGradient
+          colors={['#F97316', '#EC4899', '#A855F7']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={vcS.labelGrad}
+        >
+          <Text style={vcS.labelText}>Voice capturing...</Text>
+        </LinearGradient>
+      </View>
+
+      {/* Waveform card */}
+      <View style={vcS.card}>
+        {/* + on left */}
+        <TouchableOpacity style={vcS.addBtn} activeOpacity={0.7}>
+          <Ionicons name="add" size={18} color={colors.gray[400]} />
+        </TouchableOpacity>
+
+        {/* Animated bars */}
+        <View style={vcS.barsContainer}>
+          {barAnims.map((anim, i) => (
+            <Animated.View
+              key={i}
+              style={[
+                vcS.bar,
+                { height: anim, backgroundColor: barColor(i, BAR_COUNT) },
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Stop button */}
+        <TouchableOpacity onPress={onStop} activeOpacity={0.85}>
+          <LinearGradient
+            colors={['#F97316', '#EC4899']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={vcS.stopBtn}
+          >
+            <Ionicons name="stop" size={16} color={colors.white} />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const vcS = StyleSheet.create({
+  wrapper:   { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
+  labelRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  labelGrad: { borderRadius: 4 },
+  labelText: {
+    fontSize: fontSizes.sm, fontWeight: '600',
+    color: 'transparent',
+    // @ts-ignore — RN gradient text via mask not possible natively; colour text as pink fallback
+    color: '#EC4899',
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.gray[100],
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+  },
+  addBtn:       { padding: 2 },
+  barsContainer:{
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 48,
+  },
+  bar: {
+    width: 3,
+    borderRadius: 2,
+    minHeight: 4,
+  },
+  stopBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+  },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function AskScreen() {
-  const insets       = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
-  const [activeTab, setActiveTab] = useState<AskTab>('chat');
-  const [inputText, setInputText] = useState('');
-  const [mode, setMode]           = useState<ChatMode>('empty');
-  const [inputFocused, setFocused]= useState(false);
-  const [userMessage, setUserMessage] = useState('');
-  const [activeStep, setActiveStep]   = useState(0);
+  const [activeTab,  setActiveTab]  = useState<AskTab>('chat');
+  const [messages,   setMessages]   = useState<ChatMsg[]>([]);
+  const [inputText,  setInputText]  = useState('');
+  const [inputMode,  setInputMode]  = useState<InputMode>('text');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const inputRef = useRef<TextInput | null>(null);
+  const scrollRef    = useRef<ScrollView>(null);
+  const inputRef     = useRef<TextInput | null>(null);
+  const msgCountRef  = useRef(0);     // total user messages sent (for response rotation)
 
-  // ── Thinking animation ───────────────────────────────────────────────────
+  // ── Waveform animations ───────────────────────────────────────────────────
+
+  const barAnims = useRef(
+    Array.from({ length: BAR_COUNT }, () => new Animated.Value(4))
+  ).current;
 
   useEffect(() => {
-    if (mode !== 'thinking') return;
+    if (inputMode !== 'voice') {
+      barAnims.forEach((a) => a.setValue(4));
+      return;
+    }
 
-    setActiveStep(0);
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    const maxH = barAnims.map(() => 8 + Math.random() * 38);
 
-    THINKING_STEPS.forEach((_, i) => {
-      timers.push(
-        setTimeout(() => {
-          setActiveStep(i);
-        }, i * 1100),
+    const loops = barAnims.map((anim, i) => {
+      const dur = 180 + (i % 7) * 55;
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, { toValue: maxH[i], duration: dur, useNativeDriver: false }),
+          Animated.timing(anim, { toValue: 4 + Math.random() * 10, duration: dur, useNativeDriver: false }),
+        ])
       );
+      loop.start();
+      return loop;
     });
 
-    // Transition to response after all steps
-    timers.push(
-      setTimeout(() => {
-        setMode('response');
-      }, THINKING_STEPS.length * 1100 + 400),
-    );
+    return () => loops.forEach((l) => l.stop());
+  }, [inputMode]);
 
-    return () => timers.forEach(clearTimeout);
-  }, [mode]);
+  // ── Auto-scroll to bottom when messages change ────────────────────────────
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+  }, [messages.length]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  function handleFocus() {
-    setFocused(true);
-    if (mode === 'empty') setMode('typing');
+  function buildResponse(idx: number, id: string): AIResponseMsg {
+    if (idx === 0) {
+      return {
+        id, role: 'ai', state: 'done',
+        text: RESPONSE_TEXT_1,
+        courses: RELATED_COURSES,
+      };
+    }
+    return {
+      id, role: 'ai', state: 'done',
+      text: RESPONSE_TEXT_2,
+      featuredCourse: FEATURED_COURSE,
+    };
   }
 
-  function handleTextChange(text: string) {
-    setInputText(text);
-    if (text.length > 0 && mode === 'empty') setMode('typing');
-    if (text.length === 0 && mode === 'typing') setMode('empty');
-  }
+  function sendMessage(text: string) {
+    if (!text.trim()) return;
 
-  function handleSubmit(text?: string) {
-    const msg = text ?? inputText;
-    if (!msg.trim()) return;
-    setUserMessage(msg.trim());
+    const uId  = `u-${Date.now()}`;
+    const tId  = `t-${Date.now()}`;
+    const rId  = `r-${Date.now()}`;
+    const idx  = msgCountRef.current;
+    msgCountRef.current += 1;
+
+    setMessages((prev) => [
+      ...prev,
+      { id: uId, role: 'user', text: text.trim() },
+      { id: tId, role: 'ai',   state: 'thinking' },
+    ]);
     setInputText('');
-    setFocused(false);
+    setInputMode('text');
     inputRef.current?.blur();
-    setMode('thinking');
+
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tId ? buildResponse(idx, rId) : m))
+      );
+    }, 2400);
+  }
+
+  function handleMicPress() {
+    setInputMode('voice');
+    inputRef.current?.blur();
+  }
+
+  function handleVoiceStop() {
+    // Demo: send a pre-defined voice query
+    const voiceText = 'Can you recommend the best course available to amp up my skills on Allergen Prevention?';
+    setInputMode('text');
+    sendMessage(voiceText);
   }
 
   function handleNewChat() {
-    setMode('empty');
+    setMessages([]);
     setInputText('');
-    setUserMessage('');
-    setFocused(false);
+    setInputMode('text');
+    setExpandedIds(new Set());
+    msgCountRef.current = 0;
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
 
   function handleChipPress(chip: string) {
-    setInputText(chip);
-    setMode('typing');
-    inputRef.current?.focus();
+    sendMessage(chip);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  const hasMessages = messages.length > 0;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
+      {/* Fixed top: header + tabs */}
       <SafeAreaView edges={['top']} style={{ backgroundColor: colors.white }}>
-        <AskHeader onClose={mode !== 'empty' ? handleNewChat : undefined} />
-        <AskSegmentedTabs active={activeTab} onChange={setActiveTab} />
+        <AskHeader onNewChat={handleNewChat} />
+        <AskTabs active={activeTab} onChange={setActiveTab} />
       </SafeAreaView>
 
       <KeyboardAvoidingView
@@ -643,14 +766,13 @@ export default function AskScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        {/* ── EMPTY STATE ─────────────────────────────────────────────── */}
-        {mode === 'empty' && (
-          <View style={styles.emptyRoot}>
-            {/* Logo + heading */}
-            <View style={styles.emptyCenter}>
-              <AskLogo size={96} />
-              <Text style={styles.emptyHeading}>What do you want to know?</Text>
-              <Text style={styles.emptySubtitle}>
+        {/* ── Empty state ─────────────────────────────────────────────── */}
+        {!hasMessages && (
+          <View style={s.emptyRoot}>
+            <View style={s.emptyCenter}>
+              <AskLogo size={92} />
+              <Text style={s.emptyHeading}>What do you want to know?</Text>
+              <Text style={s.emptySubtitle}>
                 Ask anything about your learning, team, or compliance.
               </Text>
             </View>
@@ -659,153 +781,82 @@ export default function AskScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipsScroll}
-              style={styles.chipsContainer}
+              contentContainerStyle={s.chipsRow}
+              style={s.chipsScroll}
             >
               {PROMPT_CHIPS.map((chip) => (
                 <TouchableOpacity
                   key={chip}
-                  style={styles.chip}
+                  style={s.chip}
                   onPress={() => handleChipPress(chip)}
                   activeOpacity={0.75}
                 >
-                  <Text style={styles.chipText}>{chip}</Text>
+                  <Text style={s.chipText}>{chip}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-
-            {/* Input */}
-            <View style={[styles.inputWrapper, { paddingBottom: tabBarHeight + 8 }]}>
-              <GradientInput
-                value={inputText}
-                onChangeText={handleTextChange}
-                onFocus={handleFocus}
-                onSubmit={() => handleSubmit()}
-                focused={inputFocused}
-                inputRef={inputRef}
-              />
-            </View>
           </View>
         )}
 
-        {/* ── TYPING STATE ────────────────────────────────────────────── */}
-        {mode === 'typing' && (
-          <View style={styles.typingRoot}>
-            <ScrollView
-              style={{ flex: 1 }}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingTop: 8 }}
-            >
-              <Text style={styles.suggestionsLabel}>Ask AI</Text>
-              {ASK_SUGGESTIONS.filter((s) =>
-                inputText.length === 0 ||
-                s.toLowerCase().includes(inputText.toLowerCase()),
-              ).map((s) => (
-                <SuggestionRow
-                  key={s}
-                  text={s}
-                  onPress={() => handleSubmit(s)}
-                />
-              ))}
-            </ScrollView>
-
-            <View style={[styles.inputWrapper, { paddingBottom: tabBarHeight + 8 }]}>
-              <GradientInput
-                value={inputText}
-                onChangeText={handleTextChange}
-                onFocus={handleFocus}
-                onSubmit={() => handleSubmit()}
-                focused={inputFocused}
-                inputRef={inputRef}
-              />
-            </View>
-          </View>
+        {/* ── Chat messages ────────────────────────────────────────────── */}
+        {hasMessages && (
+          <ScrollView
+            ref={scrollRef}
+            style={s.chatScroll}
+            contentContainerStyle={[s.chatContent, { paddingBottom: 12 }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {messages.map((msg) => {
+              if (msg.role === 'user') {
+                return (
+                  <View key={msg.id} style={s.msgRow}>
+                    <UserBubble text={msg.text} />
+                  </View>
+                );
+              }
+              if (msg.role === 'ai' && msg.state === 'thinking') {
+                return (
+                  <View key={msg.id} style={s.msgRow}>
+                    <ThinkingBubble />
+                  </View>
+                );
+              }
+              if (msg.role === 'ai' && msg.state === 'done') {
+                return (
+                  <View key={msg.id} style={s.msgRow}>
+                    <AIResponse
+                      msg={msg}
+                      expanded={expandedIds.has(msg.id)}
+                      onToggleExpand={() => toggleExpand(msg.id)}
+                    />
+                  </View>
+                );
+              }
+              return null;
+            })}
+          </ScrollView>
         )}
 
-        {/* ── THINKING STATE ──────────────────────────────────────────── */}
-        {mode === 'thinking' && (
-          <View style={styles.chatRoot}>
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={[styles.chatContent, { paddingBottom: tabBarHeight + 16 }]}
-            >
-              {/* User message bubble */}
-              <View style={styles.userBubbleRow}>
-                <View style={styles.userBubble}>
-                  <Text style={styles.userBubbleText}>{userMessage}</Text>
-                </View>
-              </View>
-
-              {/* Thinking steps */}
-              <View style={styles.aiBubbleWrapper}>
-                <ThinkingSteps activeStep={activeStep} />
-              </View>
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ── RESPONSE STATE ──────────────────────────────────────────── */}
-        {mode === 'response' && (
-          <View style={styles.chatRoot}>
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={[styles.chatContent, { paddingBottom: tabBarHeight + 16 }]}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* User message bubble */}
-              <View style={styles.userBubbleRow}>
-                <View style={styles.userBubble}>
-                  <Text style={styles.userBubbleText}>{userMessage}</Text>
-                </View>
-              </View>
-
-              {/* AI response */}
-              <View style={styles.aiResponseWrapper}>
-                {/* Gradient sparkle avatar */}
-                <View style={styles.aiAvatarRow}>
-                  <GradientSparkIcon size={20} />
-                </View>
-
-                <Text style={styles.aiResponseText}>
-                  Based on your current learning plan and team activity, here's what I found for you. Your compliance training has been progressing well this month. Here are some relevant courses that might help:
-                </Text>
-
-                {/* Related courses */}
-                <View style={styles.relatedSection}>
-                  <Text style={styles.relatedLabel}>Related courses</Text>
-                  {RELATED_COURSES.map((c) => (
-                    <RelatedCourseRow key={c.id} course={c} />
-                  ))}
-                </View>
-
-                {/* Feedback row */}
-                <View style={styles.feedbackRow}>
-                  <TouchableOpacity style={styles.feedbackBtn} activeOpacity={0.7}>
-                    <Ionicons name="copy-outline" size={16} color={colors.gray[500]} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.feedbackBtn} activeOpacity={0.7}>
-                    <Ionicons name="thumbs-up-outline" size={16} color={colors.gray[500]} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.feedbackBtn} activeOpacity={0.7}>
-                    <Ionicons name="thumbs-down-outline" size={16} color={colors.gray[500]} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </ScrollView>
-
-            {/* Input bar for follow-up */}
-            <View style={[styles.inputWrapper, { paddingBottom: tabBarHeight + 8 }]}>
-              <GradientInput
-                value={inputText}
-                onChangeText={handleTextChange}
-                onFocus={handleFocus}
-                onSubmit={() => handleSubmit()}
-                focused={inputFocused}
-                inputRef={inputRef}
-              />
-            </View>
-          </View>
-        )}
+        {/* ── Bottom: input OR voice capture ──────────────────────────── */}
+        <View
+          style={[
+            s.inputArea,
+            { paddingBottom: tabBarHeight + 4 },
+          ]}
+        >
+          {inputMode === 'voice' ? (
+            <VoiceCaptureBar barAnims={barAnims} onStop={handleVoiceStop} />
+          ) : (
+            <ChatInputBar
+              value={inputText}
+              onChangeText={setInputText}
+              onSend={() => sendMessage(inputText)}
+              onMic={handleMicPress}
+              inputRef={inputRef}
+            />
+          )}
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -813,8 +864,8 @@ export default function AskScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  // ── Empty state
+const s = StyleSheet.create({
+  // Empty state
   emptyRoot: {
     flex: 1,
     backgroundColor: colors.white,
@@ -839,150 +890,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: fontSizes.sm * 1.6,
   },
-
-  // Prompt chips
-  chipsContainer: {
-    flexGrow: 0,
-    marginBottom: 8,
-  },
-  chipsScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-    paddingVertical: 4,
-  },
+  chipsScroll: { flexGrow: 0, marginBottom: 4 },
+  chipsRow:    { paddingHorizontal: 16, gap: 8, paddingVertical: 4 },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 14, paddingVertical: 9,
     borderRadius: radii.full,
-    borderWidth: 1.5,
-    borderColor: colors.gray[200],
+    borderWidth: 1.5, borderColor: colors.gray[200],
     backgroundColor: colors.gray[50],
   },
-  chipText: {
-    fontSize: fontSizes.xs,
-    fontWeight: '500',
-    color: colors.gray[700],
-    whiteSpace: 'nowrap',
-  } as any,
+  chipText: { fontSize: fontSizes.xs, fontWeight: '500', color: colors.gray[700] },
 
-  // Input wrapper (shared across states)
-  inputWrapper: {
-    paddingTop: 8,
+  // Chat
+  chatScroll:  { flex: 1, backgroundColor: colors.white },
+  chatContent: { paddingHorizontal: 16, paddingTop: 8, gap: 12 },
+  msgRow:      { width: '100%' },
+
+  // Input area
+  inputArea: {
     backgroundColor: colors.white,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.gray[100],
-  },
-
-  // ── Typing state
-  typingRoot: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  suggestionsLabel: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    fontSize: fontSizes.xs,
-    fontWeight: '700',
-    color: colors.gray[400],
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-
-  // ── Chat (thinking + response shared)
-  chatRoot: {
-    flex: 1,
-    backgroundColor: colors.gray[50],
-  },
-  chatContent: {
-    padding: 16,
-    gap: 12,
-  },
-
-  // User bubble
-  userBubbleRow: {
-    alignItems: 'flex-end',
-  },
-  userBubble: {
-    backgroundColor: colors.gray[100],
-    borderRadius: 18,
-    borderBottomRightRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    maxWidth: '78%',
-  },
-  userBubbleText: {
-    fontSize: fontSizes.sm,
-    color: colors.gray[900],
-    lineHeight: fontSizes.sm * 1.5,
-  },
-
-  // AI thinking wrapper
-  aiBubbleWrapper: {
-    backgroundColor: colors.white,
-    borderRadius: 18,
-    borderTopLeftRadius: 4,
-    paddingVertical: 8,
-    maxWidth: '90%',
-    alignSelf: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-
-  // AI response
-  aiResponseWrapper: {
-    backgroundColor: colors.white,
-    borderRadius: 18,
-    borderTopLeftRadius: 4,
-    padding: 14,
-    maxWidth: '94%',
-    alignSelf: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-    gap: 10,
-  },
-  aiAvatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  aiResponseText: {
-    fontSize: fontSizes.sm,
-    color: colors.gray[700],
-    lineHeight: fontSizes.sm * 1.65,
-  },
-
-  // Related courses
-  relatedSection: {
-    gap: 2,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.gray[100],
-    paddingTop: 10,
-  },
-  relatedLabel: {
-    fontSize: fontSizes.xs,
-    fontWeight: '700',
-    color: colors.gray[500],
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 6,
-  },
-
-  // Feedback
-  feedbackRow: {
-    flexDirection: 'row',
-    gap: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.gray[100],
-    paddingTop: 10,
-  },
-  feedbackBtn: {
-    padding: 6,
-    borderRadius: radii.sm,
   },
 });
