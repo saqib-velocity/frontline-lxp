@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { KingWingLogo } from '@/components/KingWingLogo';
 import { colors } from '@/constants/tokens';
 
@@ -11,6 +12,18 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ onNotificationPress, onGridPress }: AppHeaderProps) {
+  const router = useRouter();
+
+  function handleNotification() {
+    if (onNotificationPress) onNotificationPress();
+    else router.push('/notifications' as never);
+  }
+
+  function handleGrid() {
+    if (onGridPress) onGridPress();
+    else router.push('/app-grid' as never);
+  }
+
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -21,14 +34,14 @@ export function AppHeader({ onNotificationPress, onGridPress }: AppHeaderProps) 
           {/* Action icons */}
           <View style={styles.actions}>
             <TouchableOpacity
-              onPress={onNotificationPress}
+              onPress={handleNotification}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.iconButton}
             >
               <Ionicons name="notifications-outline" size={22} color={colors.white} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={onGridPress}
+              onPress={handleGrid}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.iconButton}
             >

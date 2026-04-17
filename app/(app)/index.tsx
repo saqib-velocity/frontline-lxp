@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { FilterTabBar } from '@/components/layout/FilterTabBar';
 import { MandatoryTrainingCard } from '@/components/home/MandatoryTrainingCard';
+import { MandatoryTrainingSheet } from '@/components/home/MandatoryTrainingSheet';
 import { CourseSectionHeader } from '@/components/home/CourseSectionHeader';
 import { CourseCarousel } from '@/components/home/CourseCarousel';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -70,9 +71,16 @@ export default function HomeScreen() {
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === 'desktop';
 
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [sheetTab, setSheetTab] = useState<'courses' | 'events'>('courses');
+
+  function openSheet(tab: 'courses' | 'events') {
+    setSheetTab(tab);
+    setSheetVisible(true);
+  }
+
   function handleFilterChange(tab: FilterTab) {
     if (tab === 'my-learning' || tab === 'events') {
-      // Switch into the Learning tab and let it handle sub-views
       router.navigate('/(app)/learning');
     }
     // 'todo' is already active — do nothing
@@ -99,7 +107,11 @@ export default function HomeScreen() {
           // Desktop: 2-column layout
           <View style={styles.desktopGrid}>
             <View style={styles.desktopLeft}>
-              <MandatoryTrainingCard plan={MOCK_PLAN} />
+              <MandatoryTrainingCard
+                plan={MOCK_PLAN}
+                onCoursesPress={() => openSheet('courses')}
+                onEventsPress={() => openSheet('events')}
+              />
             </View>
             <View style={styles.desktopRight}>
               <CourseSectionHeader
@@ -113,7 +125,11 @@ export default function HomeScreen() {
         ) : (
           // Mobile / tablet: single column
           <>
-            <MandatoryTrainingCard plan={MOCK_PLAN} />
+            <MandatoryTrainingCard
+              plan={MOCK_PLAN}
+              onCoursesPress={() => openSheet('courses')}
+              onEventsPress={() => openSheet('events')}
+            />
             <CourseSectionHeader
               title="Mandatory training"
               subtitle={`${MOCK_COURSES.length} Courses`}
@@ -123,6 +139,14 @@ export default function HomeScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Mandatory Training bottom sheet */}
+      <MandatoryTrainingSheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        initialTab={sheetTab}
+        plan={MOCK_PLAN}
+      />
     </View>
   );
 }
