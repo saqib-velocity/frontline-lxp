@@ -11,6 +11,8 @@ import { Card } from '@/components/ui/Card';
 import { CourseListItem } from '@/components/learning/CourseListItem';
 import { EventListItem } from '@/components/learning/EventListItem';
 import { colors, fontSizes } from '@/constants/tokens';
+import { GLASS_TAB_BAR_HEIGHT } from '@/components/layout/GlassTabBar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type {
   FilterTab,
   LearningSubFilter,
@@ -139,6 +141,7 @@ export default function LearningScreen() {
     signedUpId?: string;
   }>();
 
+  const insets = useSafeAreaInsets();
   const [globalFilter, setGlobalFilter] = useState<FilterTab>('my-learning');
   const [learningFilter, setLearningFilter] = useState<LearningSubFilter>('assigned');
   const [eventFilter, setEventFilter] = useState<EventSubFilter>('assigned');
@@ -212,7 +215,7 @@ export default function LearningScreen() {
       <View style={styles.contentArea}>
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: GLASS_TAB_BAR_HEIGHT + insets.bottom + 16 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >

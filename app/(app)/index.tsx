@@ -9,6 +9,8 @@ import { CourseSectionHeader } from '@/components/home/CourseSectionHeader';
 import { CourseCarousel } from '@/components/home/CourseCarousel';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { colors } from '@/constants/tokens';
+import { GLASS_TAB_BAR_HEIGHT } from '@/components/layout/GlassTabBar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FilterTab, TrainingPlan, Course } from '@/types/course';
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ export default function HomeScreen() {
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === 'desktop';
 
+  const insets = useSafeAreaInsets();
   const [sheetVisible, setSheetVisible] = useState(false);
   const [sheetTab, setSheetTab] = useState<'courses' | 'events'>('courses');
 
@@ -99,6 +102,7 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
+          { paddingBottom: GLASS_TAB_BAR_HEIGHT + insets.bottom + 16 },
           isDesktop && styles.scrollContentDesktop,
         ]}
         showsVerticalScrollIndicator={false}
@@ -164,6 +168,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 24,
   },
+  // Dynamic bottom padding is applied inline via insets
   scrollContentDesktop: {
     maxWidth: 1200,
     width: '100%',
