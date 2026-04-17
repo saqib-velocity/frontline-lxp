@@ -289,7 +289,8 @@ export default function LearningScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    // Orange shows through the FilterTabBar's rounded top corners
+    backgroundColor: colors.brand.primary,
   },
   contentArea: {
     flex: 1,
