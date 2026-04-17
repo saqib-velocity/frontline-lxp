@@ -45,13 +45,17 @@ export function FilterTabBar({ activeTab, onTabChange }: FilterTabBarProps) {
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
+    // Clip the ScrollView so it respects the rounded corners
+    overflow: 'hidden',
   },
   container: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 8,
   },
   tab: {
