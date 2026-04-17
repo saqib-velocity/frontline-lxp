@@ -33,11 +33,9 @@ export function SearchBar({
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingVertical: 10,
-    backgroundColor: colors.gray[50],
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[200],
+    backgroundColor: 'transparent',
   },
   inner: {
     flexDirection: 'row',

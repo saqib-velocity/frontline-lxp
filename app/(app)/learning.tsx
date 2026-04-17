@@ -251,6 +251,9 @@ export default function LearningScreen() {
             />
           )}
 
+          {/* Search bar inline — above the list */}
+          <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
+
           {/* List card */}
           <Card noPadding style={styles.card}>
             {isLearning
@@ -273,9 +276,6 @@ export default function LearningScreen() {
 
           <View style={styles.bottomPad} />
         </ScrollView>
-
-        {/* Pinned search bar above tab bar */}
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search" />
 
         {/* Toast — absolute within contentArea, appears just below FilterTabBar */}
         <Toast

@@ -8,12 +8,12 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-/** Approximate height of the glass tab bar (icon + label + padding). Add safe-area bottom yourself. */
-export const GLASS_TAB_BAR_HEIGHT = 72;
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/tokens';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+
+/** Approximate pill height — screens use this for scroll padding */
+export const GLASS_TAB_BAR_HEIGHT = 68;
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -22,39 +22,17 @@ interface TabConfig {
   label: string;
   icon: IoniconName;
   iconOutline: IoniconName;
-  /** Tab icon is always brand-orange regardless of focus state */
   alwaysBrand?: boolean;
 }
 
 const TABS: TabConfig[] = [
-  {
-    routeName: 'index',
-    label: 'Home',
-    icon: 'home',
-    iconOutline: 'home-outline',
-  },
-  {
-    routeName: 'learning',
-    label: 'Learning',
-    icon: 'school',
-    iconOutline: 'school-outline',
-  },
-  {
-    routeName: 'my-team',
-    label: 'My team',
-    icon: 'people',
-    iconOutline: 'people-outline',
-  },
-  {
-    routeName: 'ask',
-    label: 'Ask',
-    icon: 'sparkles',
-    iconOutline: 'sparkles',
-    alwaysBrand: true,
-  },
+  { routeName: 'index',    label: 'Home',     icon: 'home',      iconOutline: 'home-outline' },
+  { routeName: 'learning', label: 'Learning', icon: 'school',    iconOutline: 'school-outline' },
+  { routeName: 'my-team',  label: 'My team',  icon: 'people',    iconOutline: 'people-outline' },
+  { routeName: 'ask',      label: 'Ask',      icon: 'sparkles',  iconOutline: 'sparkles', alwaysBrand: true },
 ];
 
-// ─── Tab item ─────────────────────────────────────────────────────────────────
+// ─── Single tab item ──────────────────────────────────────────────────────────
 
 interface TabItemProps {
   config: TabConfig;
@@ -66,15 +44,8 @@ interface TabItemProps {
 function TabItem({ config, focused, onPress, onLongPress }: TabItemProps) {
   const iconColor = config.alwaysBrand
     ? colors.brand.primary
-    : focused
-    ? colors.gray[900]
-    : colors.gray[400];
-
-  const labelColor = config.alwaysBrand
-    ? colors.brand.primary
-    : focused
-    ? colors.gray[900]
-    : colors.gray[400];
+    : focused ? colors.gray[900] : colors.gray[400];
+  const labelColor = iconColor;
 
   return (
     <TouchableOpacity
@@ -83,115 +54,75 @@ function TabItem({ config, focused, onPress, onLongPress }: TabItemProps) {
       onPress={onPress}
       onLongPress={onLongPress}
       style={styles.tabItem}
-      activeOpacity={0.7}
+      activeOpacity={0.65}
     >
-      {/* Active pill indicator */}
+      {/* Active dot above icon */}
       {focused && !config.alwaysBrand && (
-        <View style={styles.activePill} />
+        <View style={styles.activeDot} />
       )}
 
-      <View style={styles.tabInner}>
-        <Ionicons
-          name={focused ? config.icon : config.iconOutline}
-          size={22}
-          color={iconColor}
-        />
-        <Text
-          style={[
-            styles.tabLabel,
-            { color: labelColor },
-            focused && !config.alwaysBrand && styles.tabLabelActive,
-          ]}
-          numberOfLines={1}
-        >
-          {config.label}
-        </Text>
-      </View>
+      <Ionicons
+        name={focused ? config.icon : config.iconOutline}
+        size={23}
+        color={iconColor}
+      />
+      <Text style={[styles.label, { color: labelColor }, focused && styles.labelActive]}>
+        {config.label}
+      </Text>
     </TouchableOpacity>
   );
 }
 
-// ─── Glass Tab Bar ─────────────────────────────────────────────────────────────
+// ─── Glass pill container ─────────────────────────────────────────────────────
 
-export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, 8);
+
+  const tabs = state.routes.map((route, index) => {
+    const config = TABS.find((t) => t.routeName === route.name);
+    if (!config) return null;
+    const focused = state.index === index;
+
+    const onPress = () => {
+      const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+      if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+    };
+    const onLongPress = () => navigation.emit({ type: 'tabLongPress', target: route.key });
+
+    return (
+      <TabItem
+        key={route.key}
+        config={config}
+        focused={focused}
+        onPress={onPress}
+        onLongPress={onLongPress}
+      />
+    );
+  });
 
   return (
-    <View
-      style={[
-        styles.wrapper,
-        { paddingBottom: Math.max(insets.bottom, 8) },
-      ]}
-      pointerEvents="box-none"
-    >
-      {/* Glass pill container */}
-      <View style={styles.pill}>
+    <View style={[styles.wrapper, { paddingBottom: bottomPad }]} pointerEvents="box-none">
+      <View style={styles.shadow}>
         {Platform.OS === 'web' ? (
-          /* Web: CSS backdrop-filter via inline style */
-          <View style={[styles.pillInner, styles.pillWeb]}>
-            {renderTabs(state, navigation)}
+          <View style={[styles.pill, styles.pillWeb]}>
+            <View style={styles.row}>{tabs}</View>
           </View>
         ) : (
-          /* Native: expo-blur BlurView */
-          <BlurView
-            intensity={72}
-            tint="systemUltraThinMaterialLight"
-            style={styles.pillInner}
-          >
-            {/* Frosted white overlay to lighten the blur */}
-            <View style={styles.pillOverlay} />
-            {renderTabs(state, navigation)}
+          <BlurView intensity={85} tint="light" style={styles.pill}>
+            {/* Very light tint so blur texture shows through */}
+            <View style={styles.tintLayer} />
+            <View style={styles.row}>{tabs}</View>
           </BlurView>
         )}
       </View>
     </View>
   );
-
-  function renderTabs(
-    navState: typeof state,
-    nav: typeof navigation,
-  ) {
-    return (
-      <View style={styles.tabsRow}>
-        {navState.routes.map((route, index) => {
-          const config = TABS.find((t) => t.routeName === route.name);
-          if (!config) return null;
-
-          const focused = navState.index === index;
-
-          const onPress = () => {
-            const event = nav.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!focused && !event.defaultPrevented) {
-              nav.navigate(route.name);
-            }
-          };
-
-          const onLongPress = () => {
-            nav.emit({ type: 'tabLongPress', target: route.key });
-          };
-
-          return (
-            <TabItem
-              key={route.key}
-              config={config}
-              focused={focused}
-              onPress={onPress}
-              onLongPress={onLongPress}
-            />
-          );
-        })}
-      </View>
-    );
-  }
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const PILL_RADIUS = 28;
+const R = 26; // pill border radius
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -199,51 +130,48 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    // Allow touches to pass through transparent areas
+    paddingHorizontal: 16,
     backgroundColor: 'transparent',
+  },
+
+  /** Separate shadow wrapper — BlurView can't have shadow on iOS */
+  shadow: {
+    borderRadius: R,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    elevation: 18,
+    backgroundColor: 'rgba(255,255,255,0.01)', // needed for iOS shadow
   },
 
   pill: {
-    width: '100%',
-    borderRadius: PILL_RADIUS,
+    borderRadius: R,
     overflow: 'hidden',
-    // Shadow (iOS)
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 24,
-    // Shadow (Android)
-    elevation: 16,
-    backgroundColor: 'transparent',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.55)',
   },
 
-  pillInner: {
-    borderRadius: PILL_RADIUS,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
-  },
-
+  /** Web frosted glass via CSS */
   pillWeb: {
-    // Web fallback — semi-transparent white + backdrop-filter via web style
-    backgroundColor: 'rgba(255,255,255,0.80)',
-    // @ts-ignore web-only style
-    backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    // @ts-ignore — web-only
+    backdropFilter: 'blur(18px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(18px) saturate(180%)',
   },
 
-  /** Semi-transparent white layer on top of BlurView to lighten frosted effect */
-  pillOverlay: {
+  /**
+   * Very light white overlay — just enough to brighten the blur so icons pop,
+   * but translucent enough to let the frosted texture show through.
+   */
+  tintLayer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.65)',
-    borderRadius: PILL_RADIUS,
+    backgroundColor: 'rgba(255,255,255,0.38)',
   },
 
-  tabsRow: {
+  row: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     paddingVertical: 10,
   },
 
@@ -251,33 +179,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
+    gap: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
 
-  /** Subtle horizontal bar under active tab icon */
-  activePill: {
+  activeDot: {
     position: 'absolute',
     top: 0,
-    width: 32,
+    width: 20,
     height: 3,
     borderRadius: 2,
     backgroundColor: colors.gray[900],
   },
 
-  tabInner: {
-    alignItems: 'center',
-    gap: 3,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-
-  tabLabel: {
+  label: {
     fontSize: 10,
     fontWeight: '500',
     letterSpacing: 0.1,
   },
-
-  tabLabelActive: {
+  labelActive: {
     fontWeight: '700',
   },
 });
