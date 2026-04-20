@@ -15,14 +15,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SvgXml } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { colors, fontSizes, radii } from '@/constants/tokens';
 import { AskLogo } from '@/components/ask/AskLogo';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AskTab   = 'chat' | 'search';
-type InputMode = 'text' | 'voice';
+type AskTab      = 'chat' | 'search';
+type InputMode   = 'text' | 'voice';
+type SearchFilter = 'courses' | 'people' | 'skills';
 
 interface CourseItem {
   id: string;
@@ -105,6 +107,16 @@ const PROMPT_CHIPS = [
   'Help me prepare for a 1:1',
 ];
 
+const SEARCH_COURSES: CourseItem[] = [
+  { id: 's1', title: 'Introduction to Leadership',      lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80' },
+  { id: 's2', title: 'Shift Lead training',             lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=120&q=80' },
+  { id: 's3', title: 'Drive-Through shift planning',    lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=120&q=80' },
+  { id: 's4', title: 'Closing cleaning shift',          lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=120&q=80' },
+  { id: 's5', title: 'Closing shift packing',           lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=120&q=80' },
+  { id: 's6', title: 'End of shift fryer maintenance',  lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=120&q=80' },
+  { id: 's7', title: 'Shift Protection',                lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=120&q=80' },
+];
+
 const RESPONSE_TEXT_1 =
   'To send an invoice, first create it using invoicing software or a template. Include your business details, the client\'s information, a description of the services or products, and the total amount due. Once completed, save the invoice as a PDF and email it to your client, or use an invoicing platform to send it directly.';
 
@@ -149,14 +161,20 @@ function GradientSpark({ size = 20 }: { size?: number }) {
 
 // ─── AskHeader ────────────────────────────────────────────────────────────────
 
-function AskHeader({ onNewChat }: { onNewChat: () => void }) {
+function AskHeader({
+  onNewChat,
+  onConversations,
+}: {
+  onNewChat: () => void;
+  onConversations: () => void;
+}) {
   return (
     <View style={hdrS.row}>
       <View style={hdrS.side}>
-        <TouchableOpacity style={hdrS.iconBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={hdrS.iconBtn} onPress={onConversations} activeOpacity={0.7}>
           <Ionicons name="document-text-outline" size={19} color={colors.gray[700]} />
         </TouchableOpacity>
-        <TouchableOpacity style={hdrS.iconBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={hdrS.iconBtn} onPress={onNewChat} activeOpacity={0.7}>
           <Ionicons name="create-outline" size={19} color={colors.gray[700]} />
         </TouchableOpacity>
       </View>
@@ -624,16 +642,128 @@ const vcS = StyleSheet.create({
   },
 });
 
+// ─── Search: filter pills ─────────────────────────────────────────────────────
+
+const FILTER_OPTIONS: { key: SearchFilter; label: string }[] = [
+  { key: 'courses', label: 'Courses' },
+  { key: 'people',  label: 'People'  },
+  { key: 'skills',  label: 'Skills'  },
+];
+
+function FilterPills({
+  active,
+  onChange,
+}: {
+  active: SearchFilter;
+  onChange: (f: SearchFilter) => void;
+}) {
+  return (
+    <View style={fpS.row}>
+      {FILTER_OPTIONS.map((f) => (
+        <TouchableOpacity
+          key={f.key}
+          style={[fpS.pill, active === f.key && fpS.pillActive]}
+          onPress={() => onChange(f.key)}
+          activeOpacity={0.75}
+        >
+          <Text style={[fpS.label, active === f.key && fpS.labelActive]}>
+            {f.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+const fpS = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.gray[100],
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radii.full,
+    borderWidth: 1.5,
+    borderColor: colors.gray[300],
+    backgroundColor: 'transparent',
+  },
+  pillActive: {
+    backgroundColor: colors.gray[900],
+    borderColor: colors.gray[900],
+  },
+  label: {
+    fontSize: fontSizes.sm,
+    fontWeight: '500',
+    color: colors.gray[600],
+  },
+  labelActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+});
+
+// ─── Search: course row ───────────────────────────────────────────────────────
+
+function SearchCourseRow({ course }: { course: CourseItem }) {
+  return (
+    <TouchableOpacity style={scS.row} activeOpacity={0.75}>
+      <Image source={{ uri: course.image }} style={scS.thumb} />
+      <View style={scS.info}>
+        <Text style={scS.title} numberOfLines={1}>{course.title}</Text>
+        <View style={scS.meta}>
+          <Text style={scS.metaText}>{course.lessons}</Text>
+          <View style={scS.dot} />
+          <Ionicons name="time-outline" size={11} color={colors.gray[400]} />
+          <Text style={scS.metaText}>{course.duration}</Text>
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={15} color={colors.gray[400]} />
+    </TouchableOpacity>
+  );
+}
+
+const scS = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.gray[100],
+    backgroundColor: colors.white,
+  },
+  thumb: {
+    width: 52,
+    height: 52,
+    borderRadius: radii.sm,
+    backgroundColor: colors.gray[200],
+  },
+  info:     { flex: 1, gap: 4 },
+  title:    { fontSize: fontSizes.sm, fontWeight: '600', color: colors.gray[900] },
+  meta:     { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: fontSizes.xs, color: colors.gray[400] },
+  dot:      { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.gray[300] },
+});
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function AskScreen() {
   const tabBarHeight = useBottomTabBarHeight();
+  const router = useRouter();
 
-  const [activeTab,  setActiveTab]  = useState<AskTab>('chat');
-  const [messages,   setMessages]   = useState<ChatMsg[]>([]);
-  const [inputText,  setInputText]  = useState('');
-  const [inputMode,  setInputMode]  = useState<InputMode>('text');
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [activeTab,     setActiveTab]     = useState<AskTab>('chat');
+  const [messages,      setMessages]      = useState<ChatMsg[]>([]);
+  const [inputText,     setInputText]     = useState('');
+  const [inputMode,     setInputMode]     = useState<InputMode>('text');
+  const [expandedIds,   setExpandedIds]   = useState<Set<string>>(new Set());
+  const [searchFilter,  setSearchFilter]  = useState<SearchFilter>('courses');
 
   const scrollRef    = useRef<ScrollView>(null);
   const inputRef     = useRef<TextInput | null>(null);
@@ -757,7 +887,10 @@ export default function AskScreen() {
     <View style={{ flex: 1, backgroundColor: colors.white }}>
       {/* Fixed top: header + tabs */}
       <SafeAreaView edges={['top']} style={{ backgroundColor: colors.white }}>
-        <AskHeader onNewChat={handleNewChat} />
+        <AskHeader
+          onNewChat={handleNewChat}
+          onConversations={() => router.push('/conversations')}
+        />
         <AskTabs active={activeTab} onChange={setActiveTab} />
       </SafeAreaView>
 
@@ -767,7 +900,7 @@ export default function AskScreen() {
         keyboardVerticalOffset={0}
       >
         {/* ── Empty state ─────────────────────────────────────────────── */}
-        {!hasMessages && (
+        {activeTab === 'chat' && !hasMessages && (
           <View style={s.emptyRoot}>
             <View style={s.emptyCenter}>
               <AskLogo size={92} />
@@ -799,7 +932,7 @@ export default function AskScreen() {
         )}
 
         {/* ── Chat messages ────────────────────────────────────────────── */}
-        {hasMessages && (
+        {activeTab === 'chat' && hasMessages && (
           <ScrollView
             ref={scrollRef}
             style={s.chatScroll}
@@ -836,6 +969,22 @@ export default function AskScreen() {
               return null;
             })}
           </ScrollView>
+        )}
+
+        {/* ── Search tab ──────────────────────────────────────────────── */}
+        {activeTab === 'search' && (
+          <View style={s.searchRoot}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingTop: 4 }}
+            >
+              {SEARCH_COURSES.map((c) => (
+                <SearchCourseRow key={c.id} course={c} />
+              ))}
+              <Text style={s.itemsFound}>00 Items found</Text>
+            </ScrollView>
+            <FilterPills active={searchFilter} onChange={setSearchFilter} />
+          </View>
         )}
 
         {/* ── Bottom: input OR voice capture ──────────────────────────── */}
@@ -899,6 +1048,15 @@ const s = StyleSheet.create({
     backgroundColor: colors.gray[50],
   },
   chipText: { fontSize: fontSizes.xs, fontWeight: '500', color: colors.gray[700] },
+
+  // Search
+  searchRoot:  { flex: 1, backgroundColor: colors.white },
+  itemsFound: {
+    textAlign: 'center',
+    fontSize: fontSizes.sm,
+    color: colors.gray[400],
+    paddingVertical: 16,
+  },
 
   // Chat
   chatScroll:  { flex: 1, backgroundColor: colors.white },
