@@ -9,6 +9,7 @@ import { CourseSectionHeader } from '@/components/home/CourseSectionHeader';
 import { CourseCarousel } from '@/components/home/CourseCarousel';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { colors } from '@/constants/tokens';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import type { FilterTab, TrainingPlan, Course } from '@/types/course';
 
@@ -69,6 +70,7 @@ const MOCK_COURSES: Course[] = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { tokens } = useAppTheme();
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === 'desktop';
 
@@ -89,8 +91,8 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.root}>
-      {/* Sticky header: orange bar */}
+    <View style={[styles.root, { backgroundColor: tokens.headerBg }]}>
+      {/* Sticky header */}
       <AppHeader />
 
       {/* Filter tabs — 'todo' always active on Home */}

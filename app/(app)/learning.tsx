@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { CourseListItem } from '@/components/learning/CourseListItem';
 import { EventListItem } from '@/components/learning/EventListItem';
 import { colors, fontSizes } from '@/constants/tokens';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import type {
   FilterTab,
@@ -134,6 +135,7 @@ const EVENT_SUB_FILTERS: { key: EventSubFilter; label: string }[] = [
 
 export default function LearningScreen() {
   const router = useRouter();
+  const { tokens } = useAppTheme();
   const params = useLocalSearchParams<{
     toast?: string;
     toastTitle?: string;
@@ -202,8 +204,8 @@ export default function LearningScreen() {
   const isLearning = globalFilter === 'my-learning';
 
   return (
-    <View style={styles.root}>
-      {/* Sticky orange header */}
+    <View style={[styles.root, { backgroundColor: tokens.headerBg }]}>
+      {/* Sticky header */}
       <AppHeader />
 
       {/* Global filter: To-Do / My learning / Events */}

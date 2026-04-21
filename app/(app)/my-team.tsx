@@ -16,6 +16,7 @@ import { UserActionsSheet } from '@/components/my-team/UserActionsSheet';
 import { UserRequestSheet, type RequestItem } from '@/components/my-team/UserRequestSheet';
 import { Toast } from '@/components/ui/Toast';
 import { colors, fontSizes, radii } from '@/constants/tokens';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import type { TeamMember, MyTeamTab, ComplianceTab } from '@/types/team';
 
@@ -59,6 +60,7 @@ const MY_TEAM_TABS: { id: MyTeamTab; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MyTeamScreen() {
+  const { tokens } = useAppTheme();
   const tabBarHeight = useBottomTabBarHeight();
   const params = useLocalSearchParams<{
     toast?: string;
@@ -140,7 +142,7 @@ export default function MyTeamScreen() {
   const shownRequests = requestsTab === 'open' ? openRequests : closedRequests;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: tokens.headerBg }]}>
       <AppHeader />
 
       {/* Compliance / Requests / Report pill tabs */}
