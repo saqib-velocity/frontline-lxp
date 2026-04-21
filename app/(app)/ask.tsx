@@ -22,9 +22,14 @@ import { AskLogo } from '@/components/ask/AskLogo';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AskTab      = 'chat' | 'search';
-type InputMode   = 'text' | 'voice';
+type AskTab       = 'chat' | 'search';
+type InputMode    = 'text' | 'voice';
 type SearchFilter = 'courses' | 'people' | 'skills';
+
+interface PromptChip {
+  title: string;
+  subtitle: string;
+}
 
 interface CourseItem {
   id: string;
@@ -67,6 +72,13 @@ type ChatMsg = UserMsg | AIThinkingMsg | AIResponseMsg;
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
+const PROMPT_CHIPS: PromptChip[] = [
+  { title: 'Due Training',        subtitle: "Show me where I'm behind" },
+  { title: 'End-Shift Checklist', subtitle: "Store close to-do's" },
+  { title: 'Shift Handover',      subtitle: 'Notes for next shift' },
+  { title: 'Allergen Awareness',  subtitle: 'Latest guidelines' },
+];
+
 const RELATED_COURSES: CourseItem[] = [
   {
     id: 'c1',
@@ -99,14 +111,6 @@ const FEATURED_COURSE: FeaturedCourse = {
   image: 'https://images.unsplash.com/photo-1598135753163-6167c1a1ad65?w=600&q=80',
 };
 
-const PROMPT_CHIPS = [
-  'What courses are due this week?',
-  'Summarise my team compliance',
-  'Find fire safety training',
-  "What's new in my learning plan?",
-  'Help me prepare for a 1:1',
-];
-
 const SEARCH_COURSES: CourseItem[] = [
   { id: 's1', title: 'Introduction to Leadership',      lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80' },
   { id: 's2', title: 'Shift Lead training',             lessons: '00/00', duration: '15 min', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=120&q=80' },
@@ -118,12 +122,16 @@ const SEARCH_COURSES: CourseItem[] = [
 ];
 
 const RESPONSE_TEXT_1 =
-  'To send an invoice, first create it using invoicing software or a template. Include your business details, the client\'s information, a description of the services or products, and the total amount due. Once completed, save the invoice as a PDF and email it to your client, or use an invoicing platform to send it directly.';
+  "To send an invoice, first create it using invoicing software or a template. Include your business details, the client's information, a description of the services or products, and the total amount due. Once completed, save the invoice as a PDF and email it to your client, or use an invoicing platform to send it directly.";
 
 const RESPONSE_TEXT_2 =
   "Sure thing, here's what I'd recommend to improve your skills on the topic:";
 
+const GRAD_COLORS = ['#F97316', '#EC4899', '#A855F7'] as const;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const BAR_COUNT = 18;
 
 function lerp(a: number, b: number, t: number) {
   return Math.round(a + (b - a) * t);
@@ -170,6 +178,7 @@ function AskHeader({
 }) {
   return (
     <View style={hdrS.row}>
+      {/* Left: conversations + new chat */}
       <View style={hdrS.side}>
         <TouchableOpacity style={hdrS.iconBtn} onPress={onConversations} activeOpacity={0.7}>
           <Ionicons name="document-text-outline" size={19} color={colors.gray[700]} />
@@ -179,11 +188,13 @@ function AskHeader({
         </TouchableOpacity>
       </View>
 
+      {/* Center: spark + Ask */}
       <View style={hdrS.center}>
         <GradientSpark size={18} />
         <Text style={hdrS.title}>Ask</Text>
       </View>
 
+      {/* Right: close */}
       <View style={[hdrS.side, { alignItems: 'flex-end' }]}>
         <TouchableOpacity style={hdrS.closeBtn} onPress={onNewChat} activeOpacity={0.7}>
           <Ionicons name="close" size={16} color={colors.gray[500]} />
@@ -202,9 +213,9 @@ const hdrS = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: colors.white,
   },
-  side:  { flexDirection: 'row', gap: 4, width: 76 },
-  center:{ flexDirection: 'row', alignItems: 'center', gap: 6 },
-  title: { fontSize: fontSizes.base, fontWeight: '700', color: colors.gray[900] },
+  side:    { flexDirection: 'row', gap: 4, width: 76 },
+  center:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title:   { fontSize: fontSizes.base, fontWeight: '700', color: colors.gray[900] },
   iconBtn: {
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: colors.gray[100],
@@ -245,7 +256,7 @@ const tabS = StyleSheet.create({
     borderRadius: radii.full,
     padding: 3,
     marginHorizontal: 16,
-    marginBottom: 6,
+    marginVertical: 10,
   },
   tab: {
     flex: 1, paddingVertical: 7,
@@ -261,6 +272,57 @@ const tabS = StyleSheet.create({
   labelActive: { fontWeight: '700', color: colors.gray[900] },
 });
 
+// ─── Chip grid (2-column) ─────────────────────────────────────────────────────
+
+function ChipGrid({ onChipPress }: { onChipPress: (title: string) => void }) {
+  return (
+    <View style={cgS.grid}>
+      {PROMPT_CHIPS.map((chip) => (
+        <TouchableOpacity
+          key={chip.title}
+          style={cgS.chip}
+          onPress={() => onChipPress(chip.title)}
+          activeOpacity={0.75}
+        >
+          <Text style={cgS.chipTitle}>{chip.title}</Text>
+          <Text style={cgS.chipSub}>{chip.subtitle}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+const cgS = StyleSheet.create({
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  chip: {
+    // Each chip takes ~half width minus gap
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: colors.white,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 4,
+  },
+  chipTitle: {
+    fontSize: fontSizes.sm,
+    fontWeight: '700',
+    color: colors.gray[900],
+  },
+  chipSub: {
+    fontSize: fontSizes.xs,
+    color: colors.gray[500],
+    lineHeight: fontSizes.xs * 1.5,
+  },
+});
+
 // ─── User bubble ─────────────────────────────────────────────────────────────
 
 function UserBubble({ text }: { text: string }) {
@@ -274,12 +336,14 @@ function UserBubble({ text }: { text: string }) {
 const ubS = StyleSheet.create({
   bubble: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.gray[100],
+    backgroundColor: colors.white,
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     paddingHorizontal: 14,
     paddingVertical: 10,
     maxWidth: '88%',
+    borderWidth: 1,
+    borderColor: colors.gray[200],
   },
   text: {
     fontSize: fontSizes.sm,
@@ -339,7 +403,6 @@ function AIResponse({
       {/* Courses list */}
       {msg.courses && msg.courses.length > 0 && (
         <View style={arS.section}>
-          {/* Section header */}
           <View style={arS.sectionHeader}>
             <Text style={arS.sectionLabel}>Related courses</Text>
             {msg.courses.length > 2 && (
@@ -350,7 +413,6 @@ function AIResponse({
               </TouchableOpacity>
             )}
           </View>
-          {/* Course rows */}
           {visibleCourses.map((c) => (
             <TouchableOpacity key={c.id} style={arS.courseRow} activeOpacity={0.75}>
               <Image source={{ uri: c.image }} style={arS.thumb} />
@@ -402,9 +464,9 @@ function AIResponse({
 }
 
 const arS = StyleSheet.create({
-  wrapper:     { gap: 12 },
-  bodyText:    { fontSize: fontSizes.sm, color: colors.gray[900], lineHeight: fontSizes.sm * 1.65, fontWeight: '500' },
-  section:     { gap: 2 },
+  wrapper:    { gap: 12 },
+  bodyText:   { fontSize: fontSizes.sm, color: colors.gray[900], lineHeight: fontSizes.sm * 1.65, fontWeight: '500' },
+  section:    { gap: 2 },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', marginBottom: 6,
@@ -415,114 +477,205 @@ const arS = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.gray[100],
+    borderBottomColor: colors.gray[200],
   },
-  thumb: {
-    width: 48, height: 48, borderRadius: radii.sm,
-    backgroundColor: colors.gray[200],
-  },
+  thumb:      { width: 48, height: 48, borderRadius: radii.sm, backgroundColor: colors.gray[200] },
   courseInfo: { flex: 1, gap: 3 },
   courseTitle: { fontSize: fontSizes.sm, fontWeight: '600', color: colors.gray[900] },
-  courseMeta:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText:    { fontSize: fontSizes.xs, color: colors.gray[400] },
-  dot:         { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.gray[300] },
-
-  // Featured course card
+  courseMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText:   { fontSize: fontSizes.xs, color: colors.gray[400] },
+  dot:        { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.gray[300] },
   featuredCard: {
     borderRadius: radii.md,
     overflow: 'hidden',
-    backgroundColor: colors.gray[50],
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.gray[200],
   },
   featuredImage: { width: '100%', height: 180, backgroundColor: colors.gray[200] },
   featuredBody:  { padding: 12, gap: 4 },
   featuredTitle: { fontSize: fontSizes.sm, fontWeight: '700', color: colors.gray[900], lineHeight: fontSizes.sm * 1.4 },
-
-  // Feedback
-  feedbackRow: { flexDirection: 'row', gap: 2 },
-  fbBtn:       { padding: 5, borderRadius: radii.sm },
+  feedbackRow:   { flexDirection: 'row', gap: 2 },
+  fbBtn:         { padding: 5, borderRadius: radii.sm },
 });
 
-// ─── Chat input bar (text mode) ───────────────────────────────────────────────
+// ─── Chat input card ─────────────────────────────────────────────────────────
+// White rounded card. When focused OR in voice mode → LinearGradient border.
 
-function ChatInputBar({
-  value,
-  onChangeText,
-  onSend,
-  onMic,
-  inputRef,
-}: {
+interface ChatInputCardProps {
   value: string;
   onChangeText: (t: string) => void;
   onSend: () => void;
-  onMic: () => void;
+  onMicPress: () => void;
+  onVoiceStop: () => void;
   inputRef: React.RefObject<TextInput | null>;
-}) {
-  return (
-    <View style={ciS.row}>
-      {/* + button */}
-      <TouchableOpacity style={ciS.plusBtn} activeOpacity={0.7}>
-        <Ionicons name="add" size={20} color={colors.gray[500]} />
-      </TouchableOpacity>
+  isVoice: boolean;
+  isFocused: boolean;
+  barAnims: Animated.Value[];
+  onFocus: () => void;
+  onBlur: () => void;
+}
 
-      {/* Input pill */}
-      <View style={ciS.pill}>
-        <TextInput
-          ref={inputRef}
-          style={ciS.input}
-          placeholder="Ask anything..."
-          placeholderTextColor={colors.gray[400]}
-          value={value}
-          onChangeText={onChangeText}
-          returnKeyType="send"
-          onSubmitEditing={onSend}
-          multiline={false}
-        />
-        {value.length === 0 ? (
-          <TouchableOpacity onPress={onMic} activeOpacity={0.7} style={ciS.iconBtn}>
-            <Ionicons name="mic-outline" size={19} color={colors.gray[500]} />
+function ChatInputCard({
+  value,
+  onChangeText,
+  onSend,
+  onMicPress,
+  onVoiceStop,
+  inputRef,
+  isVoice,
+  isFocused,
+  barAnims,
+  onFocus,
+  onBlur,
+}: ChatInputCardProps) {
+  const hasText = value.length > 0;
+  const showGradBorder = isFocused || isVoice;
+
+  const cardContent = (
+    <View style={[
+      ciS.card,
+      !showGradBorder && ciS.cardShadow,
+    ]}>
+      {isVoice ? (
+        /* ── Voice mode ─────────────────────────────────────── */
+        <View style={ciS.voiceWrapper}>
+          {/* "Voice capturing..." label */}
+          <View style={ciS.voiceLabelRow}>
+            <GradientSpark size={14} />
+            <Text style={ciS.voiceLabel}>Voice capturing...</Text>
+          </View>
+
+          {/* Waveform row */}
+          <View style={ciS.waveRow}>
+            {/* + */}
+            <TouchableOpacity style={ciS.waveAddBtn} activeOpacity={0.7}>
+              <Ionicons name="add" size={20} color={colors.gray[400]} />
+            </TouchableOpacity>
+
+            {/* Animated bars */}
+            <View style={ciS.barsContainer}>
+              {barAnims.map((anim, i) => (
+                <Animated.View
+                  key={i}
+                  style={[
+                    ciS.bar,
+                    { height: anim, backgroundColor: barColor(i, BAR_COUNT) },
+                  ]}
+                />
+              ))}
+            </View>
+
+            {/* Stop */}
+            <TouchableOpacity onPress={onVoiceStop} activeOpacity={0.85}>
+              <LinearGradient
+                colors={['#F97316', '#EC4899']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={ciS.stopBtn}
+              >
+                <Ionicons name="stop" size={16} color={colors.white} />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        /* ── Text mode ──────────────────────────────────────── */
+        <View style={ciS.textRow}>
+          {/* + */}
+          <TouchableOpacity style={ciS.plusBtn} activeOpacity={0.7}>
+            <Ionicons name="add" size={22} color={colors.gray[500]} />
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={onSend} activeOpacity={0.7}>
-            <LinearGradient
-              colors={['#F97316', '#A855F7']}
-              start={{ x: 0, y: 1 }}
-              end={{ x: 1, y: 0 }}
-              style={ciS.sendBtn}
-            >
-              <Ionicons name="arrow-up" size={14} color={colors.white} />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-      </View>
+
+          {/* Input */}
+          <TextInput
+            ref={inputRef}
+            style={ciS.input}
+            placeholder="Ask anything..."
+            placeholderTextColor={colors.gray[400]}
+            value={value}
+            onChangeText={onChangeText}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            returnKeyType="send"
+            onSubmitEditing={onSend}
+            multiline={false}
+          />
+
+          {/* Mic or Send */}
+          {!hasText ? (
+            <TouchableOpacity onPress={onMicPress} activeOpacity={0.7} style={ciS.iconBtn}>
+              <Ionicons name="mic-outline" size={20} color={colors.gray[500]} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={onSend} activeOpacity={0.7}>
+              <LinearGradient
+                colors={['#F97316', '#A855F7']}
+                start={{ x: 0, y: 1 }}
+                end={{ x: 1, y: 0 }}
+                style={ciS.sendBtn}
+              >
+                <Ionicons name="arrow-up" size={15} color={colors.white} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
+
+  if (showGradBorder) {
+    return (
+      <LinearGradient
+        colors={GRAD_COLORS}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={ciS.gradWrap}
+      >
+        {cardContent}
+      </LinearGradient>
+    );
+  }
+
+  return <View style={ciS.plainWrap}>{cardContent}</View>;
 }
 
 const ciS = StyleSheet.create({
-  row: {
+  // Gradient border wrapper (1.5px padding gives the border effect)
+  gradWrap: {
+    borderRadius: 22,
+    padding: 1.5,
+    marginHorizontal: 16,
+  },
+  // Plain wrapper (no border)
+  plainWrap: {
+    marginHorizontal: 16,
+  },
+  // The white card inside
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  cardShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+
+  // ── Text mode ──
+  textRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+    gap: 10,
   },
   plusBtn: {
-    width: 34, height: 34, borderRadius: 17,
+    width: 32, height: 32, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
-  },
-  pill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.gray[50],
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    gap: 8,
   },
   input: {
     flex: 1,
@@ -532,104 +685,43 @@ const ciS = StyleSheet.create({
   },
   iconBtn: { padding: 2 },
   sendBtn: {
-    width: 26, height: 26, borderRadius: 13,
+    width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
-});
 
-// ─── Voice capture bar ────────────────────────────────────────────────────────
-
-const BAR_COUNT = 18;
-
-function VoiceCaptureBar({
-  barAnims,
-  onStop,
-}: {
-  barAnims: Animated.Value[];
-  onStop: () => void;
-}) {
-  return (
-    <View style={vcS.wrapper}>
-      {/* Voice capturing label */}
-      <View style={vcS.labelRow}>
-        <GradientSpark size={14} />
-        <LinearGradient
-          colors={['#F97316', '#EC4899', '#A855F7']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={vcS.labelGrad}
-        >
-          <Text style={vcS.labelText}>Voice capturing...</Text>
-        </LinearGradient>
-      </View>
-
-      {/* Waveform card */}
-      <View style={vcS.card}>
-        {/* + on left */}
-        <TouchableOpacity style={vcS.addBtn} activeOpacity={0.7}>
-          <Ionicons name="add" size={18} color={colors.gray[400]} />
-        </TouchableOpacity>
-
-        {/* Animated bars */}
-        <View style={vcS.barsContainer}>
-          {barAnims.map((anim, i) => (
-            <Animated.View
-              key={i}
-              style={[
-                vcS.bar,
-                { height: anim, backgroundColor: barColor(i, BAR_COUNT) },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Stop button */}
-        <TouchableOpacity onPress={onStop} activeOpacity={0.85}>
-          <LinearGradient
-            colors={['#F97316', '#EC4899']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={vcS.stopBtn}
-          >
-            <Ionicons name="stop" size={16} color={colors.white} />
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-const vcS = StyleSheet.create({
-  wrapper:   { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
-  labelRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  labelGrad: { borderRadius: 4 },
-  labelText: {
-    fontSize: fontSizes.sm, fontWeight: '600',
-    color: 'transparent',
-    // @ts-ignore — RN gradient text via mask not possible natively; colour text as pink fallback
-    color: '#EC4899',
+  // ── Voice mode ──
+  voiceWrapper: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
+    gap: 10,
   },
-  card: {
+  voiceLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.gray[100],
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    justifyContent: 'center',
+    gap: 6,
   },
-  addBtn:       { padding: 2 },
-  barsContainer:{
+  voiceLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: '600',
+    color: '#EC4899',
+  },
+  waveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  waveAddBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  barsContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 48,
+    height: 44,
   },
   bar: {
     width: 3,
@@ -691,21 +783,13 @@ const fpS = StyleSheet.create({
     borderRadius: radii.full,
     borderWidth: 1.5,
     borderColor: colors.gray[300],
-    backgroundColor: 'transparent',
   },
   pillActive: {
     backgroundColor: colors.gray[900],
     borderColor: colors.gray[900],
   },
-  label: {
-    fontSize: fontSizes.sm,
-    fontWeight: '500',
-    color: colors.gray[600],
-  },
-  labelActive: {
-    color: colors.white,
-    fontWeight: '600',
-  },
+  label:       { fontSize: fontSizes.sm, fontWeight: '500', color: colors.gray[600] },
+  labelActive: { color: colors.white, fontWeight: '600' },
 });
 
 // ─── Search: course row ───────────────────────────────────────────────────────
@@ -739,12 +823,7 @@ const scS = StyleSheet.create({
     borderBottomColor: colors.gray[100],
     backgroundColor: colors.white,
   },
-  thumb: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.sm,
-    backgroundColor: colors.gray[200],
-  },
+  thumb:    { width: 52, height: 52, borderRadius: radii.sm, backgroundColor: colors.gray[200] },
   info:     { flex: 1, gap: 4 },
   title:    { fontSize: fontSizes.sm, fontWeight: '600', color: colors.gray[900] },
   meta:     { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -758,16 +837,17 @@ export default function AskScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const router = useRouter();
 
-  const [activeTab,     setActiveTab]     = useState<AskTab>('chat');
-  const [messages,      setMessages]      = useState<ChatMsg[]>([]);
-  const [inputText,     setInputText]     = useState('');
-  const [inputMode,     setInputMode]     = useState<InputMode>('text');
-  const [expandedIds,   setExpandedIds]   = useState<Set<string>>(new Set());
-  const [searchFilter,  setSearchFilter]  = useState<SearchFilter>('courses');
+  const [activeTab,    setActiveTab]    = useState<AskTab>('chat');
+  const [messages,     setMessages]     = useState<ChatMsg[]>([]);
+  const [inputText,    setInputText]    = useState('');
+  const [inputMode,    setInputMode]    = useState<InputMode>('text');
+  const [inputFocused, setInputFocused] = useState(false);
+  const [expandedIds,  setExpandedIds]  = useState<Set<string>>(new Set());
+  const [searchFilter, setSearchFilter] = useState<SearchFilter>('courses');
 
   const scrollRef    = useRef<ScrollView>(null);
   const inputRef     = useRef<TextInput | null>(null);
-  const msgCountRef  = useRef(0);     // total user messages sent (for response rotation)
+  const msgCountRef  = useRef(0);
 
   // ── Waveform animations ───────────────────────────────────────────────────
 
@@ -780,9 +860,7 @@ export default function AskScreen() {
       barAnims.forEach((a) => a.setValue(4));
       return;
     }
-
-    const maxH = barAnims.map(() => 8 + Math.random() * 38);
-
+    const maxH = barAnims.map(() => 8 + Math.random() * 36);
     const loops = barAnims.map((anim, i) => {
       const dur = 180 + (i % 7) * 55;
       const loop = Animated.loop(
@@ -794,11 +872,10 @@ export default function AskScreen() {
       loop.start();
       return loop;
     });
-
     return () => loops.forEach((l) => l.stop());
   }, [inputMode]);
 
-  // ── Auto-scroll to bottom when messages change ────────────────────────────
+  // ── Auto-scroll ───────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -809,26 +886,17 @@ export default function AskScreen() {
 
   function buildResponse(idx: number, id: string): AIResponseMsg {
     if (idx === 0) {
-      return {
-        id, role: 'ai', state: 'done',
-        text: RESPONSE_TEXT_1,
-        courses: RELATED_COURSES,
-      };
+      return { id, role: 'ai', state: 'done', text: RESPONSE_TEXT_1, courses: RELATED_COURSES };
     }
-    return {
-      id, role: 'ai', state: 'done',
-      text: RESPONSE_TEXT_2,
-      featuredCourse: FEATURED_COURSE,
-    };
+    return { id, role: 'ai', state: 'done', text: RESPONSE_TEXT_2, featuredCourse: FEATURED_COURSE };
   }
 
   function sendMessage(text: string) {
     if (!text.trim()) return;
-
-    const uId  = `u-${Date.now()}`;
-    const tId  = `t-${Date.now()}`;
-    const rId  = `r-${Date.now()}`;
-    const idx  = msgCountRef.current;
+    const uId = `u-${Date.now()}`;
+    const tId = `t-${Date.now()}`;
+    const rId = `r-${Date.now()}`;
+    const idx = msgCountRef.current;
     msgCountRef.current += 1;
 
     setMessages((prev) => [
@@ -838,6 +906,7 @@ export default function AskScreen() {
     ]);
     setInputText('');
     setInputMode('text');
+    setInputFocused(false);
     inputRef.current?.blur();
 
     setTimeout(() => {
@@ -849,20 +918,20 @@ export default function AskScreen() {
 
   function handleMicPress() {
     setInputMode('voice');
+    setInputFocused(false);
     inputRef.current?.blur();
   }
 
   function handleVoiceStop() {
-    // Demo: send a pre-defined voice query
-    const voiceText = 'Can you recommend the best course available to amp up my skills on Allergen Prevention?';
     setInputMode('text');
-    sendMessage(voiceText);
+    sendMessage('Can you recommend the best course available to amp up my skills on Allergen Prevention?');
   }
 
   function handleNewChat() {
     setMessages([]);
     setInputText('');
     setInputMode('text');
+    setInputFocused(false);
     setExpandedIds(new Set());
     msgCountRef.current = 0;
   }
@@ -875,18 +944,17 @@ export default function AskScreen() {
     });
   }
 
-  function handleChipPress(chip: string) {
-    sendMessage(chip);
-  }
+  // ── Derived state ─────────────────────────────────────────────────────────
+
+  const hasMessages   = messages.length > 0;
+  const showEmptyChat = activeTab === 'chat' && !hasMessages;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const hasMessages = messages.length > 0;
-
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
-      {/* Fixed top: header + tabs */}
-      <SafeAreaView edges={['top']} style={{ backgroundColor: colors.white }}>
+    <View style={s.root}>
+      {/* ── Fixed top chrome ─────────────────────────────────────────── */}
+      <SafeAreaView edges={['top']} style={s.topChrome}>
         <AskHeader
           onNewChat={handleNewChat}
           onConversations={() => router.push('/conversations')}
@@ -899,76 +967,68 @@ export default function AskScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        {/* ── Empty state ─────────────────────────────────────────────── */}
-        {activeTab === 'chat' && !hasMessages && (
-          <View style={s.emptyRoot}>
-            <View style={s.emptyCenter}>
-              <AskLogo size={92} />
-              <Text style={s.emptyHeading}>What do you want to know?</Text>
-              <Text style={s.emptySubtitle}>
-                Ask anything about your learning, team, or compliance.
-              </Text>
-            </View>
+        {/* ── Empty / chat area ────────────────────────────────────────── */}
+        {activeTab === 'chat' && (
+          <>
+            {showEmptyChat ? (
+              /* Empty state: logo + subtitle + chip grid */
+              <ScrollView
+                style={s.emptyScroll}
+                contentContainerStyle={s.emptyContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Logo + subtitle */}
+                <View style={s.emptyCenter}>
+                  <AskLogo size={84} />
+                  <Text style={s.subtitle}>
+                    Your search engine and helper in one place.
+                  </Text>
+                </View>
 
-            {/* Prompt chips */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.chipsRow}
-              style={s.chipsScroll}
-            >
-              {PROMPT_CHIPS.map((chip) => (
-                <TouchableOpacity
-                  key={chip}
-                  style={s.chip}
-                  onPress={() => handleChipPress(chip)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={s.chipText}>{chip}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ── Chat messages ────────────────────────────────────────────── */}
-        {activeTab === 'chat' && hasMessages && (
-          <ScrollView
-            ref={scrollRef}
-            style={s.chatScroll}
-            contentContainerStyle={[s.chatContent, { paddingBottom: 12 }]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {messages.map((msg) => {
-              if (msg.role === 'user') {
-                return (
-                  <View key={msg.id} style={s.msgRow}>
-                    <UserBubble text={msg.text} />
-                  </View>
-                );
-              }
-              if (msg.role === 'ai' && msg.state === 'thinking') {
-                return (
-                  <View key={msg.id} style={s.msgRow}>
-                    <ThinkingBubble />
-                  </View>
-                );
-              }
-              if (msg.role === 'ai' && msg.state === 'done') {
-                return (
-                  <View key={msg.id} style={s.msgRow}>
-                    <AIResponse
-                      msg={msg}
-                      expanded={expandedIds.has(msg.id)}
-                      onToggleExpand={() => toggleExpand(msg.id)}
-                    />
-                  </View>
-                );
-              }
-              return null;
-            })}
-          </ScrollView>
+                {/* 2-column chip grid */}
+                <ChipGrid onChipPress={(title) => sendMessage(title)} />
+              </ScrollView>
+            ) : (
+              /* Chat messages */
+              <ScrollView
+                ref={scrollRef}
+                style={s.chatScroll}
+                contentContainerStyle={s.chatContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {messages.map((msg) => {
+                  if (msg.role === 'user') {
+                    return (
+                      <View key={msg.id} style={s.msgRow}>
+                        <UserBubble text={msg.text} />
+                      </View>
+                    );
+                  }
+                  if (msg.role === 'ai' && msg.state === 'thinking') {
+                    return (
+                      <View key={msg.id} style={s.msgRow}>
+                        <ThinkingBubble />
+                      </View>
+                    );
+                  }
+                  if (msg.role === 'ai' && msg.state === 'done') {
+                    return (
+                      <View key={msg.id} style={s.msgRow}>
+                        <AIResponse
+                          msg={msg}
+                          expanded={expandedIds.has(msg.id)}
+                          onToggleExpand={() => toggleExpand(msg.id)}
+                        />
+                      </View>
+                    );
+                  }
+                  return null;
+                })}
+              </ScrollView>
+            )}
+          </>
         )}
 
         {/* ── Search tab ──────────────────────────────────────────────── */}
@@ -987,24 +1047,21 @@ export default function AskScreen() {
           </View>
         )}
 
-        {/* ── Bottom: input OR voice capture ──────────────────────────── */}
-        <View
-          style={[
-            s.inputArea,
-            { paddingBottom: tabBarHeight + 4 },
-          ]}
-        >
-          {inputMode === 'voice' ? (
-            <VoiceCaptureBar barAnims={barAnims} onStop={handleVoiceStop} />
-          ) : (
-            <ChatInputBar
-              value={inputText}
-              onChangeText={setInputText}
-              onSend={() => sendMessage(inputText)}
-              onMic={handleMicPress}
-              inputRef={inputRef}
-            />
-          )}
+        {/* ── Input card (always visible at bottom) ───────────────────── */}
+        <View style={[s.inputArea, { paddingBottom: tabBarHeight + 12 }]}>
+          <ChatInputCard
+            value={inputText}
+            onChangeText={setInputText}
+            onSend={() => sendMessage(inputText)}
+            onMicPress={handleMicPress}
+            onVoiceStop={handleVoiceStop}
+            inputRef={inputRef}
+            isVoice={inputMode === 'voice'}
+            isFocused={inputFocused}
+            barAnims={barAnims}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
+          />
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -1014,40 +1071,37 @@ export default function AskScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  // Empty state
-  emptyRoot: {
+  root: {
     flex: 1,
+    backgroundColor: colors.gray[100],
+  },
+  topChrome: {
     backgroundColor: colors.white,
+  },
+
+  // Empty state
+  emptyScroll: {
+    flex: 1,
+    backgroundColor: colors.gray[100],
+  },
+  emptyContent: {
+    flexGrow: 1,
+    paddingBottom: 16,
   },
   emptyCenter: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 12,
+    paddingHorizontal: 40,
+    paddingVertical: 40,
+    gap: 14,
   },
-  emptyHeading: {
-    fontSize: fontSizes.xl,
-    fontWeight: '800',
-    color: colors.gray[900],
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  emptySubtitle: {
+  subtitle: {
     fontSize: fontSizes.sm,
     color: colors.gray[500],
     textAlign: 'center',
     lineHeight: fontSizes.sm * 1.6,
   },
-  chipsScroll: { flexGrow: 0, marginBottom: 4 },
-  chipsRow:    { paddingHorizontal: 16, gap: 8, paddingVertical: 4 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: radii.full,
-    borderWidth: 1.5, borderColor: colors.gray[200],
-    backgroundColor: colors.gray[50],
-  },
-  chipText: { fontSize: fontSizes.xs, fontWeight: '500', color: colors.gray[700] },
 
   // Search
   searchRoot:  { flex: 1, backgroundColor: colors.white },
@@ -1059,14 +1113,13 @@ const s = StyleSheet.create({
   },
 
   // Chat
-  chatScroll:  { flex: 1, backgroundColor: colors.white },
-  chatContent: { paddingHorizontal: 16, paddingTop: 8, gap: 12 },
+  chatScroll:  { flex: 1, backgroundColor: colors.gray[100] },
+  chatContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, gap: 14 },
   msgRow:      { width: '100%' },
 
-  // Input area
+  // Input area (sits on gray bg, no border needed)
   inputArea: {
-    backgroundColor: colors.white,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.gray[100],
+    backgroundColor: colors.gray[100],
+    paddingTop: 12,
   },
 });
