@@ -263,6 +263,16 @@ export default function LearningScreen() {
                     key={course.id}
                     course={course}
                     showDivider={i < LEARNING_COURSES.length - 1}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/course-detail',
+                        params: {
+                          id: course.id,
+                          title: course.title,
+                          thumbnail: course.thumbnail ?? '',
+                        },
+                      })
+                    }
                   />
                 ))
               : events.map((event, i) => (

@@ -124,7 +124,15 @@ export default function HomeScreen() {
                 subtitle={`${MOCK_COURSES.length} Courses`}
                 onSeeAll={() => {}}
               />
-              <CourseCarousel courses={MOCK_COURSES} />
+              <CourseCarousel
+                courses={MOCK_COURSES}
+                onCoursePress={(c) =>
+                  router.push({
+                    pathname: '/course-detail',
+                    params: { id: c.id, title: c.title, thumbnail: c.thumbnail ?? '' },
+                  })
+                }
+              />
             </View>
           </View>
         ) : (

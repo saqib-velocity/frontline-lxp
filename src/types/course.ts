@@ -49,3 +49,25 @@ export interface TrainingPlan {
 export type FilterTab = 'todo' | 'my-learning' | 'events';
 export type LearningSubFilter = 'assigned' | 'in-progress' | 'saved' | 'complete';
 export type EventSubFilter = 'assigned' | 'available' | 'attended';
+
+// ─── SCORM / Course player ────────────────────────────────────────────────────
+
+export type ChapterStatus = 'current' | 'locked' | 'complete' | 'quiz';
+
+export interface CourseChapter {
+  id: string;
+  index: number;       // 1-based display number
+  title: string;
+  duration: string;    // e.g. "3 min"
+  status: ChapterStatus;
+  scormPath?: string;  // path inside unzipped SCORM package, e.g. "index.html"
+}
+
+export type ContentPreference = 'read' | 'watch' | 'listen';
+
+export interface CourseDetail extends Course {
+  description: string;
+  skills: string[];
+  chapters: CourseChapter[];
+  totalDuration: string;  // e.g. "15 min"
+}
