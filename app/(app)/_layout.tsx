@@ -5,11 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/tokens';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { GlassTabBar } from '@/components/layout/GlassTabBar';
+import { useAppTheme } from '@/context/ThemeContext';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function AppLayout() {
   const breakpoint = useBreakpoint();
+  const { tokens } = useAppTheme();
   const isDesktop = Platform.OS === 'web' && breakpoint === 'desktop';
 
   if (isDesktop) {
@@ -18,7 +20,7 @@ export default function AppLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.brand.primary,
+          tabBarActiveTintColor: tokens.brandPrimary,
           tabBarInactiveTintColor: colors.gray[400],
           tabBarPosition: 'left',
           tabBarStyle: {

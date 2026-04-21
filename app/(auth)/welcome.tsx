@@ -11,12 +11,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { KingWingLogo } from '../../src/components/KingWingLogo';
-
-// Brand color exactly from Figma: rgb(194, 72, 6)
-const BRAND = '#C24806';
+import { useAppTheme } from '../../src/context/ThemeContext';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { tokens } = useAppTheme();
+  const BRAND = tokens.headerBg;
   const { width } = useWindowDimensions();
   const isTabletOrDesktop = width >= 768;
 
