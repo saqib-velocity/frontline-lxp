@@ -10,6 +10,7 @@ import {
   Platform,
   Animated,
   Image,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -844,6 +845,7 @@ export default function AskScreen() {
   const [inputFocused, setInputFocused] = useState(false);
   const [expandedIds,  setExpandedIds]  = useState<Set<string>>(new Set());
   const [searchFilter, setSearchFilter] = useState<SearchFilter>('courses');
+  const [kbVisible,    setKbVisible]    = useState(false);
 
   const scrollRef    = useRef<ScrollView>(null);
   const inputRef     = useRef<TextInput | null>(null);
@@ -881,6 +883,19 @@ export default function AskScreen() {
     if (messages.length === 0) return;
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
   }, [messages.length]);
+
+  // ── Keyboard visibility ───────────────────────────────────────────────────
+  // Track whether the keyboard is open so we can remove the tab-bar offset
+  // from the input card — otherwise a ~90px dead gap sits between the card
+  // and the top of the keyboard.
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKbVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKbVisible(false));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -1048,7 +1063,7 @@ export default function AskScreen() {
         )}
 
         {/* ── Input card (always visible at bottom) ───────────────────── */}
-        <View style={[s.inputArea, { paddingBottom: tabBarHeight + 12 }]}>
+        <View style={[s.inputArea, { paddingBottom: kbVisible ? 8 : tabBarHeight + 12 }]}>
           <ChatInputCard
             value={inputText}
             onChangeText={setInputText}
