@@ -13,18 +13,19 @@
  *   cd /tmp/scorm-content/CheckTheLabel   && vercel deploy --prod
  */
 
-const SHIFTUP_URL      = 'https://shiftup-scorm.vercel.app';
-const CHECK_LABEL_URL  = 'https://check-the-label-scorm.vercel.app';
+const SHIFTUP_URL       = 'https://shiftup-scorm.vercel.app';
+const CHECK_LABEL_URL   = 'https://check-the-label-scorm.vercel.app';
+const SETTING_TONE_URL  = 'https://setting-the-tone-scorm.vercel.app';
 
 /**
  * Map of courseId → full SCORM launch URL.
  * courseIds match the mock data ids in (app)/index.tsx and learning.tsx.
  */
 export const SCORM_LAUNCH_FILES: Record<string, string> = {
-  c1: `${SHIFTUP_URL}/index_lms.html`,       // ShiftUp Alpha  — Food Safety: Hot Holding & Temps
-  c2: `${CHECK_LABEL_URL}/index.html`,        // Check the Label — Allergen Awareness
-  c3: `${SHIFTUP_URL}/index_lms.html`,        // placeholder — swap when content is ready
-  c4: `${SHIFTUP_URL}/index_lms.html`,
+  c1: `${SHIFTUP_URL}/index_lms.html`,       // ShiftUp Alpha       — Food Safety: Hot Holding & Temps
+  c2: `${CHECK_LABEL_URL}/index.html`,        // Check the Label     — Allergen Awareness
+  c3: `${SETTING_TONE_URL}/launch.html`,      // Setting the Tone    — Manager Responsibilities (Elucidat)
+  c4: `${SHIFTUP_URL}/index_lms.html`,        // placeholder — swap when content is ready
   c5: `${SHIFTUP_URL}/index_lms.html`,
   c6: `${SHIFTUP_URL}/index_lms.html`,
 };
