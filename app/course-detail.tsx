@@ -26,21 +26,69 @@ import { useAppTheme } from '@/context/ThemeContext';
 import { colors, fontSizes, radii } from '@/constants/tokens';
 import type { CourseChapter, ContentPreference } from '@/types/course';
 
-// ─── Mock data (replace with API call keyed by id) ────────────────────────────
+// ─── Per-course data ──────────────────────────────────────────────────────────
 
-const MOCK_CHAPTERS: CourseChapter[] = [
-  { id: 'ch1', index: 1, title: 'Food Safety Fundamentals',          duration: '3 min',  status: 'current'  },
-  { id: 'ch2', index: 2, title: 'Intermediate Food Safety Techniques',duration: '3 min',  status: 'locked'   },
-  { id: 'ch3', index: 3, title: 'Advanced Food Safety Strategies',   duration: '3 min',  status: 'locked'   },
-  { id: 'ch4', index: 4, title: 'Expert Food Safety Insights',       duration: '3 min',  status: 'locked'   },
-  { id: 'ch5', index: 5, title: 'Practical Food Safety Applications', duration: '3 min', status: 'quiz'     },
-  { id: 'ch6', index: 6, title: 'Food Safety Fundamentals 2',        duration: '0 min',  status: 'complete' },
-];
+interface CourseData {
+  description: string;
+  skills: string[];
+  chapters: CourseChapter[];
+  totalDuration: string;
+}
 
-const MOCK_DESCRIPTION =
-  'Course description goes here. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor.';
-
-const MOCK_SKILLS = ['Skill #1', 'Skill #2', 'Skill #3'];
+const COURSE_DATA: Record<string, CourseData> = {
+  c1: {
+    totalDuration: '20 min',
+    description:
+      'A podcast-style learning journey for frontline leaders. Explore the mindset shift from team member to manager — covering delegation, building trust, motivating your team, and turning big-picture goals into results on the shop floor.',
+    skills: ['Frontline Leadership', 'Team Motivation', 'Delegation', 'Building Trust'],
+    chapters: [
+      { id: 'ch1', index: 1, title: 'The Frontline Manager Role',       duration: '4 min', status: 'current' },
+      { id: 'ch2', index: 2, title: 'From Doing to Enabling',           duration: '4 min', status: 'locked'  },
+      { id: 'ch3', index: 3, title: 'Building Trust Every Shift',       duration: '4 min', status: 'locked'  },
+      { id: 'ch4', index: 4, title: 'Motivating Your Team',             duration: '4 min', status: 'locked'  },
+      { id: 'ch5', index: 5, title: 'Delegating with Confidence',       duration: '4 min', status: 'quiz'    },
+    ],
+  },
+  c2: {
+    totalDuration: '15 min',
+    description:
+      'Set inside Bon Vivant luxury hotel, this scenario-based course challenges you to identify the 14 recognised food allergens, understand your legal obligations, and keep every customer safe — from storage to service.',
+    skills: ['Food Allergen Awareness', 'Allergen Law', 'Customer Safety', 'Safe Food Handling'],
+    chapters: [
+      { id: 'ch1', index: 1, title: 'The 14 Recognised Allergens',      duration: '3 min', status: 'current' },
+      { id: 'ch2', index: 2, title: 'What Does the Law Say?',           duration: '3 min', status: 'locked'  },
+      { id: 'ch3', index: 3, title: 'Spotting an Allergic Reaction',    duration: '3 min', status: 'locked'  },
+      { id: 'ch4', index: 4, title: 'Safe Storage & Preparation',       duration: '3 min', status: 'locked'  },
+      { id: 'ch5', index: 5, title: 'Serving Customers Safely',         duration: '3 min', status: 'quiz'    },
+    ],
+  },
+  c3: {
+    totalDuration: '15 min',
+    description:
+      'Discover what it takes to be the manager your team deserves. Explore how to set clear expectations, uphold team standards, and lead with confidence — so every shift runs at its best.',
+    skills: ['Setting Expectations', 'Manager Accountability', 'Team Standards', 'Confident Leadership'],
+    chapters: [
+      { id: 'ch1', index: 1, title: 'What It Means to Set the Tone',    duration: '3 min', status: 'current' },
+      { id: 'ch2', index: 2, title: 'Upholding Standards Daily',        duration: '3 min', status: 'locked'  },
+      { id: 'ch3', index: 3, title: 'Communicating Expectations',       duration: '3 min', status: 'locked'  },
+      { id: 'ch4', index: 4, title: 'Accountability in Action',         duration: '3 min', status: 'locked'  },
+      { id: 'ch5', index: 5, title: 'Your Leadership Responsibilities', duration: '3 min', status: 'quiz'    },
+    ],
+  },
+  c4: {
+    totalDuration: '3 hr',
+    description:
+      'A comprehensive training for young people on how to engage safely and responsibly within UN processes. Covers personal safety, digital security, respectful participation, and navigating international forums with confidence.',
+    skills: ['Personal Safety', 'Digital Security', 'UN Processes', 'International Engagement'],
+    chapters: [
+      { id: 'ch1', index: 1, title: 'Welcome & Course Overview',        duration: '10 min', status: 'current' },
+      { id: 'ch2', index: 2, title: 'Understanding the UN System',      duration: '35 min', status: 'locked'  },
+      { id: 'ch3', index: 3, title: 'Personal Safety at Events',        duration: '35 min', status: 'locked'  },
+      { id: 'ch4', index: 4, title: 'Digital Security Essentials',      duration: '35 min', status: 'locked'  },
+      { id: 'ch5', index: 5, title: 'Responsible Participation',        duration: '45 min', status: 'quiz'    },
+    ],
+  },
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -188,16 +236,19 @@ export default function CourseDetailScreen() {
     thumbnail?: string;
   }>();
 
-  const courseTitle = params.title ?? 'Food Safety: Hot Holding & Temps';
-  const thumbnail   = params.thumbnail ?? 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80';
+  const courseTitle = params.title ?? 'ShiftUp: Step Into Leadership';
+  const thumbnail   = params.thumbnail ?? 'https://shiftup-scorm.vercel.app/story_content/thumbnail.jpg';
+
+  // Look up course-specific content, falling back to c1
+  const courseData  = COURSE_DATA[params.id ?? 'c1'] ?? COURSE_DATA['c1'];
 
   const [activeTab,  setActiveTab]  = useState<'chapters' | 'overview'>('chapters');
   const [pref,       setPref]       = useState<ContentPreference>('watch');
   const [bookmarked, setBookmarked] = useState(false);
 
   // First chapter that's 'current' or first chapter
-  const startChapter = MOCK_CHAPTERS.find((c) => c.status === 'current') ?? MOCK_CHAPTERS[0];
-  const hasCurrent   = MOCK_CHAPTERS.some((c) => c.status === 'current');
+  const startChapter = courseData.chapters.find((c) => c.status === 'current') ?? courseData.chapters[0];
+  const hasCurrent   = courseData.chapters.some((c) => c.status === 'current');
 
   function handleStart() {
     router.push({
@@ -297,18 +348,18 @@ export default function CourseDetailScreen() {
               <View style={s.chapterHeaderRow}>
                 <Text style={s.chapterHeaderTitle}>Course chapters</Text>
                 <View style={s.badge}>
-                  <Text style={s.badgeText}>{MOCK_CHAPTERS.length}</Text>
+                  <Text style={s.badgeText}>{courseData.chapters.length}</Text>
                 </View>
-                <Text style={s.chapterDuration}>15 min</Text>
+                <Text style={s.chapterDuration}>{courseData.totalDuration}</Text>
               </View>
 
               {/* Chapter list card */}
               <View style={s.listCard}>
-                {MOCK_CHAPTERS.map((ch, i) => (
+                {courseData.chapters.map((ch, i) => (
                   <ChapterRow
                     key={ch.id}
                     chapter={ch}
-                    isLast={i === MOCK_CHAPTERS.length - 1}
+                    isLast={i === courseData.chapters.length - 1}
                     onPress={() => handleChapterPress(ch)}
                   />
                 ))}
@@ -319,9 +370,9 @@ export default function CourseDetailScreen() {
           {/* ── Overview tab ─────────────────────────────────────────────── */}
           {activeTab === 'overview' && (
             <View style={s.section}>
-              <Text style={s.description}>{MOCK_DESCRIPTION}</Text>
+              <Text style={s.description}>{courseData.description}</Text>
               <View style={s.skillsRow}>
-                {MOCK_SKILLS.map((skill) => (
+                {courseData.skills.map((skill) => (
                   <View key={skill} style={s.skillChip}>
                     <Text style={s.skillText}>{skill}</Text>
                   </View>
