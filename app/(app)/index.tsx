@@ -116,6 +116,14 @@ export default function HomeScreen() {
                 plan={MOCK_PLAN}
                 onCoursesPress={() => openSheet('courses')}
                 onEventsPress={() => openSheet('events')}
+                onStartHerePress={() => {
+                  const c = MOCK_PLAN.startHereCourse;
+                  if (!c) return;
+                  router.push({
+                    pathname: '/course-detail',
+                    params: { id: c.id, title: c.title, thumbnail: c.thumbnail ?? '' },
+                  });
+                }}
               />
             </View>
             <View style={styles.desktopRight}>
@@ -142,13 +150,29 @@ export default function HomeScreen() {
               plan={MOCK_PLAN}
               onCoursesPress={() => openSheet('courses')}
               onEventsPress={() => openSheet('events')}
+              onStartHerePress={() => {
+                const c = MOCK_PLAN.startHereCourse;
+                if (!c) return;
+                router.push({
+                  pathname: '/course-detail',
+                  params: { id: c.id, title: c.title, thumbnail: c.thumbnail ?? '' },
+                });
+              }}
             />
             <CourseSectionHeader
               title="Mandatory training"
               subtitle={`${MOCK_COURSES.length} Courses`}
               onSeeAll={() => {}}
             />
-            <CourseCarousel courses={MOCK_COURSES} />
+            <CourseCarousel
+              courses={MOCK_COURSES}
+              onCoursePress={(c) =>
+                router.push({
+                  pathname: '/course-detail',
+                  params: { id: c.id, title: c.title, thumbnail: c.thumbnail ?? '' },
+                })
+              }
+            />
           </>
         )}
       </ScrollView>
