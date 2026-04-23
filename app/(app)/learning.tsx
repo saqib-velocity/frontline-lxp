@@ -177,7 +177,7 @@ export default function LearningScreen() {
 
   function handleGlobalFilter(tab: FilterTab) {
     if (tab === 'todo') {
-      router.navigate('/(app)/');
+      router.navigate('/');
     } else {
       setGlobalFilter(tab);
     }

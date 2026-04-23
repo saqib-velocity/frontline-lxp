@@ -9,7 +9,10 @@
     "web": "expo start --web --clear",
     "build:web": "expo export --platform web",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "scorm:serve": "npx serve /tmp/scorm-content/ShiftUp_Alpha -l 3001 --cors",
+    "scorm:deploy:shiftup": "cd /tmp/scorm-content/ShiftUp_Alpha && vercel deploy --prod",
+    "scorm:deploy:check-label": "cd /tmp/scorm-content/CheckTheLabel && vercel deploy --prod"
   },
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",

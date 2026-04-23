@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
   const isTabletOrDesktop = width >= 768;
 
   function handleGetStarted() {
-    router.replace('/(app)/');
+    router.replace('/');
   }
 
   return (

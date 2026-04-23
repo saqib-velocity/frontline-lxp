@@ -7,12 +7,12 @@
  * Matches Figma node 6202:73491.
  *
  * Navigation params:
- *   courseId      string
+ *   courseId      string  — used to resolve the SCORM launch URL via getScormUrl()
  *   courseTitle   string
  *   chapterId     string
  *   chapterTitle  string
  *   chapterIndex  string (number)
- *   scormUri?     file:// URI for real SCORM content
+ *   scormUri?     override file:// or http:// URI (skips courseId lookup)
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -23,14 +23,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { colors, fontSizes, radii } from '@/constants/tokens';
+import { colors, fontSizes } from '@/constants/tokens';
 import ScormPlayer, { ScormPlayerRef } from '@/components/course/ScormPlayer';
+import { getScormUrl } from '@/constants/scorm';
 
 // ─── Mock transcript (replace with real SCORM content data) ──────────────────
 
@@ -59,7 +59,11 @@ export default function CoursePlayerScreen() {
   const courseTitle   = params.courseTitle  ?? 'Food Safety: Hot Holding & Temps';
   const chapterTitle  = params.chapterTitle ?? 'Expert Food Safety Insights';
   const chapterIndex  = params.chapterIndex ?? '1';
-  const scormUri      = params.scormUri;   // undefined → shows placeholder
+
+  // Build SCORM URL from courseId — served by `npm run scorm:serve`.
+  // Falls back to undefined (placeholder) when no courseId is supplied.
+  const courseId = params.courseId;
+  const scormUri = courseId ? getScormUrl(courseId) : params.scormUri;
 
   const [isLandscape,  setIsLandscape]  = useState(false);
   const [isMuted,      setIsMuted]      = useState(false);

@@ -13,8 +13,8 @@
  * and completion status can be persisted.
  */
 
-import React, { useRef, forwardRef, useImperativeHandle } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 // ─── SCORM 1.2 + 2004 shim injected into every page ─────────────────────────
@@ -151,6 +151,7 @@ const ScormPlayer = forwardRef<ScormPlayerRef, Props>(function ScormPlayer(
   ref,
 ) {
   const webRef = useRef<WebView>(null);
+  const [loading, setLoading] = useState(!!uri);
 
   useImperativeHandle(ref, () => ({
     injectJS: (js) => webRef.current?.injectJavaScript(js),
@@ -167,32 +168,55 @@ const ScormPlayer = forwardRef<ScormPlayerRef, Props>(function ScormPlayer(
     } catch (_) { /* non-SCORM postMessages are ignored */ }
   }
 
+  // Determine source — HTTP/file URIs or inline placeholder HTML
+  const isHttp = uri?.startsWith('http://') || uri?.startsWith('https://');
+  const isFile = uri?.startsWith('file://');
+
+  const webViewSource = uri
+    ? { uri }
+    : { html: PLACEHOLDER_HTML };
+
+  const fileAccessProps = isFile
+    ? {
+        allowFileAccess: true,
+        allowUniversalAccessFromFileURLs: true,
+        originWhitelist: ['*', 'file://*'],
+      }
+    : {};
+
+  const httpProps = isHttp
+    ? {
+        // Allow mixed content needed for Articulate Storyline's sub-frames
+        mixedContentMode: 'always' as const,
+        originWhitelist: ['*'],
+      }
+    : {};
+
   return (
     <View style={[styles.container, style]}>
       <WebView
         ref={webRef}
-        // Real SCORM: load from unzipped file:// URI
-        // Placeholder: inline HTML
-        {...(uri
-          ? {
-              source: { uri },
-              allowFileAccess: true,
-              allowUniversalAccessFromFileURLs: true,
-              originWhitelist: ['*', 'file://*'],
-            }
-          : { source: { html: PLACEHOLDER_HTML } }
-        )}
+        source={webViewSource}
+        {...fileAccessProps}
+        {...httpProps}
         injectedJavaScriptBeforeContentLoaded={SCORM_SHIM}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         mediaPlaybackRequiresUserAction={false}
         allowsInlineMediaPlayback={true}
         onMessage={handleMessage}
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
         style={styles.webview}
-        // Hide the scrollbar inside the WebView — content scrolls via outer ScrollView
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       />
+      {/* Loading spinner — visible while SCORM content fetches over HTTP */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#C24806" />
+        </View>
+      )}
     </View>
   );
 });
@@ -209,5 +233,11 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#1a1a1a',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

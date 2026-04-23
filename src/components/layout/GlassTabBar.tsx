@@ -230,8 +230,9 @@ const styles = StyleSheet.create({
 
   pillWeb: {
     backgroundColor: 'rgba(255,255,255,0.72)',
-    // @ts-ignore web only
+    // @ts-ignore — web-only CSS properties not in RN types
     backdropFilter: 'blur(18px) saturate(180%)',
+    // @ts-ignore
     WebkitBackdropFilter: 'blur(18px) saturate(180%)',
   },
 
