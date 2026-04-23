@@ -13,7 +13,8 @@
     "scorm:serve": "npx serve /tmp/scorm-content/ShiftUp_Alpha -l 3001 --cors",
     "scorm:deploy:shiftup": "cd /tmp/scorm-content/ShiftUp_Alpha && vercel deploy --prod",
     "scorm:deploy:check-label": "cd /tmp/scorm-content/CheckTheLabel && vercel deploy --prod",
-    "scorm:deploy:setting-tone": "cd /tmp/scorm-content/SettingTheTone && vercel deploy --prod"
+    "scorm:deploy:setting-tone": "cd /tmp/scorm-content/SettingTheTone && vercel deploy --prod",
+    "scorm:deploy:engaging-safely": "cd /tmp/scorm-content/EngagingSafely && vercel deploy --prod"
   },
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
