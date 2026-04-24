@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     overflow: 'hidden',
-    borderRadius: 16,
+    borderRadius: 0,
     backgroundColor: '#1a1a1a',
   },
   webview: {
