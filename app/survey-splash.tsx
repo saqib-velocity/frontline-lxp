@@ -14,15 +14,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, fontSizes, radii } from '@/constants/tokens';
-
-const KW_LOGO = require('@/assets/images/king-wing-logo.png');
+import { KingWingLogo } from '@/components/KingWingLogo';
 
 export default function SurveySplashScreen() {
   const router = useRouter();
@@ -45,7 +43,7 @@ export default function SurveySplashScreen() {
 
       {/* ── Logo bar ─────────────────────────────────────────────────────────── */}
       <View style={s.logoBar}>
-        <Image source={KW_LOGO} style={s.logo} resizeMode="contain" />
+        <KingWingLogo width={92} height={32} />
       </View>
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
@@ -112,10 +110,6 @@ const s = StyleSheet.create({
     height: 60,
     paddingHorizontal: 16,
     justifyContent: 'center',
-  },
-  logo: {
-    width: 92,
-    height: 32,
   },
 
   // Main content — vertically centred in the remaining space
