@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { colors, fontSizes, radii } from '@/constants/tokens';
 import {
   useAppTheme,
@@ -17,6 +20,37 @@ import {
   THEME_META,
   type BrandTheme,
 } from '@/context/ThemeContext';
+
+// ─── Notification helper ──────────────────────────────────────────────────────
+
+async function sendSurveyNotification() {
+  // Request permissions (required on iOS)
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert(
+      'Notifications disabled',
+      'Please enable notifications in your device settings to use this feature.',
+    );
+    return;
+  }
+
+  // Schedule a local notification that fires after 3 seconds
+  // (gives the user time to background the app and see it arrive)
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '📋 We want to hear from you!',
+      body: 'In less than 1 minute you can help us improve your experience.',
+      data: { screen: 'survey-splash' },
+      sound: true,
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 3 },
+  });
+
+  Alert.alert(
+    'Notification scheduled',
+    'You\'ll receive it in 3 seconds. Background the app to see it arrive!',
+  );
+}
 
 // ─── Mini header preview ──────────────────────────────────────────────────────
 
@@ -199,6 +233,28 @@ export default function ProfileScreen() {
           ))}
         </View>
 
+        {/* ── Notifications / Developer tools ───────────────────────────── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Notifications</Text>
+          <Text style={s.sectionDesc}>
+            Test the survey notification flow end-to-end.
+          </Text>
+          <TouchableOpacity
+            style={s.notifBtn}
+            onPress={sendSurveyNotification}
+            activeOpacity={0.8}
+          >
+            <View style={s.notifIcon}>
+              <Ionicons name="send-outline" size={18} color={colors.white} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.notifLabel}>Send Survey Notification</Text>
+              <Text style={s.notifSub}>Fires in 3 s — background the app to see it</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.gray[400]} />
+          </TouchableOpacity>
+        </View>
+
         {/* ── Sign out ──────────────────────────────────────────────────── */}
         <TouchableOpacity style={s.signOutBtn} activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={18} color="#DC2626" />
@@ -282,6 +338,37 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   settingLabel: { flex: 1, fontSize: fontSizes.sm, color: colors.gray[900] },
+
+  // Notification button
+  notifBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.gray[50],
+    borderRadius: radii.md,
+    padding: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.gray[200],
+  },
+  notifIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.brand.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  notifLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: '700',
+    color: colors.gray[900],
+  },
+  notifSub: {
+    fontSize: fontSizes.xs,
+    color: colors.gray[500],
+    marginTop: 2,
+  },
 
   // Sign out
   signOutBtn: {

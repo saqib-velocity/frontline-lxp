@@ -7,6 +7,7 @@ import { MandatoryTrainingCard } from '@/components/home/MandatoryTrainingCard';
 import { MandatoryTrainingSheet } from '@/components/home/MandatoryTrainingSheet';
 import { CourseSectionHeader } from '@/components/home/CourseSectionHeader';
 import { CourseCarousel } from '@/components/home/CourseCarousel';
+import { SurveyBannerCarousel } from '@/components/home/SurveyBannerCarousel';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { colors } from '@/constants/tokens';
 import { useAppTheme } from '@/context/ThemeContext';
@@ -116,6 +117,11 @@ export default function HomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Survey banner carousel — always shown at top ──────────────────── */}
+        <View style={styles.surveyBannerWrap}>
+          <SurveyBannerCarousel onPress={() => router.push('/survey-splash' as any)} />
+        </View>
+
         {isDesktop ? (
           // Desktop: 2-column layout
           <View style={styles.desktopGrid}>
@@ -208,6 +214,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 24,
+  },
+  surveyBannerWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+    backgroundColor: colors.gray[50],
   },
   // Dynamic bottom padding is applied inline via insets
   scrollContentDesktop: {
