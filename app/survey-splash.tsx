@@ -21,13 +21,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, fontSizes, radii } from '@/constants/tokens';
 import { KingWingLogo } from '@/components/KingWingLogo';
+import { COMPANY_ONBOARDING_SURVEY } from '@/constants/survey';
 
 export default function SurveySplashScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const survey = COMPANY_ONBOARDING_SURVEY;
 
   function goToDashboard() {
     router.replace('/(app)/' as any);
+  }
+
+  function goToSurvey() {
+    router.push('/survey' as any);
   }
 
   return (
@@ -64,16 +70,16 @@ export default function SurveySplashScreen() {
             {/* Text + meta */}
             <View style={s.cardTextBlock}>
               <View style={s.cardTitleRow}>
-                <Text style={s.cardTitle} numberOfLines={1}>Company Onboarding Survey</Text>
-                <TouchableOpacity style={s.cardArrow} activeOpacity={0.7} onPress={goToDashboard}>
+                <Text style={s.cardTitle} numberOfLines={1}>{survey.title}</Text>
+                <TouchableOpacity style={s.cardArrow} activeOpacity={0.7} onPress={goToSurvey}>
                   <Ionicons name="chevron-forward" size={14} color={colors.gray[600]} />
                 </TouchableOpacity>
               </View>
               <View style={s.cardMeta}>
-                <Text style={s.metaText}>01 Jan</Text>
+                <Text style={s.metaText}>{survey.dueDate}</Text>
                 <Text style={s.metaDot}> · </Text>
                 <Ionicons name="timer-outline" size={12} color={colors.gray[500]} />
-                <Text style={s.metaText}> 1 min</Text>
+                <Text style={s.metaText}> {survey.estimatedMinutes} min</Text>
               </View>
             </View>
           </View>

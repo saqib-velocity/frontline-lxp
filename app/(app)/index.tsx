@@ -119,7 +119,7 @@ export default function HomeScreen() {
       >
         {/* ── Survey banner carousel — always shown at top ──────────────────── */}
         <View style={styles.surveyBannerWrap}>
-          <SurveyBannerCarousel onPress={() => router.push('/survey-splash' as any)} />
+          <SurveyBannerCarousel onPress={() => router.push('/survey' as any)} />
         </View>
 
         {isDesktop ? (
