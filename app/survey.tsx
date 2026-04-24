@@ -27,7 +27,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -181,9 +180,8 @@ export default function SurveyScreen() {
   // In production: fetch from API using survey ID passed as route param
   const survey: SurveyConfig = COMPANY_ONBOARDING_SURVEY;
 
-  const [qIndex,      setQIndex]      = useState(0);
-  const [answers,     setAnswers]     = useState<Record<string, string>>({});
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [qIndex,  setQIndex]  = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const q             = survey.questions[qIndex];
   const total         = survey.questions.length;
@@ -204,11 +202,11 @@ export default function SurveyScreen() {
   function handleContinue() {
     if (!canContinue) return;
     if (isLast) {
-      // Submit — show toast then go home
-      setShowSuccess(true);
-      setTimeout(() => {
-        router.replace('/(app)/' as any);
-      }, 2500);
+      // Submit — navigate to AI analysis screen, passing the free-text answer
+      router.push({
+        pathname: '/ai-analysis' as any,
+        params: { text: answers['q2'] ?? '' },
+      });
     } else {
       setQIndex((i) => i + 1);
     }
@@ -290,22 +288,6 @@ export default function SurveyScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Success toast (Figma node 6383-89730) ─────────────────────────── */}
-        {showSuccess && (
-          <View style={[s.toast, { top: insets.top + 8 }]}>
-            <Ionicons name="checkmark-circle" size={16} color="#078810" />
-            <View style={s.toastBody}>
-              <Text style={s.toastTitle}>Survey submitted</Text>
-              <Text style={s.toastSub}>Thanks for sharing your feedback!</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => setShowSuccess(false)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close" size={16} color={colors.gray[900]} />
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -425,32 +407,4 @@ const s = StyleSheet.create({
     color: colors.white,
   },
 
-  // Toast (Figma node 6383-89730)
-  toast: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    shadowColor: 'rgba(36,12,64,0.16)',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  toastBody: { flex: 1, gap: 2 },
-  toastTitle: {
-    fontSize: fontSizes.base,
-    fontWeight: '700',
-    color: colors.gray[900],
-  },
-  toastSub: {
-    fontSize: fontSizes.sm,
-    fontWeight: '600',
-    color: '#686868',
-  },
 });
