@@ -32,6 +32,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, fontSizes } from '@/constants/tokens';
+import { analyzeAndRecommend, type CourseRecommendation } from '@/lib/claude';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -64,15 +65,17 @@ const AI = {
 export default function AiAnalysisScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ text?: string; answers?: string }>();
+  const params = useLocalSearchParams<{ text?: string; q1?: string; answers?: string }>();
 
-  // The feedback text to display (passed from survey screen)
+  // Survey answers passed from survey.tsx
   const feedbackText = params.text ?? params.answers ?? '';
+  const q1Answer     = params.q1 ?? '';
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [done,         setDone]         = useState(false);
-  const [dotStep,      setDotStep]      = useState(0); // 0‥3 for "Processing" → "..."
-  const [toastVisible, setToastVisible] = useState(true);
+  const [done,           setDone]           = useState(false);
+  const [dotStep,        setDotStep]        = useState(0); // 0‥3 for "Processing" → "..."
+  const [toastVisible,   setToastVisible]   = useState(true);
+  const recommendationRef = useRef<CourseRecommendation | null>(null);
 
   // ── Animation values ───────────────────────────────────────────────────────
   /** 0→1 looping — drives all colour cycling */
@@ -148,15 +151,37 @@ export default function AiAnalysisScreen() {
       setDotStep((s) => (s + 1) % 4);
     }, 500);
 
-    // ── Processing complete ─────────────────────────────────────────────────
-    const doneTimer = setTimeout(() => {
+    // ── Fire Claude API + minimum animation timer in parallel ──────────────
+    let cancelled = false;
+
+    const minDelay  = new Promise<void>((res) => setTimeout(res, PROCESSING_MS));
+    const apiCall   = analyzeAndRecommend(q1Answer, feedbackText);
+
+    Promise.all([minDelay, apiCall]).then(([, recommendation]) => {
+      if (cancelled) return;
+      recommendationRef.current = recommendation;
       setDone(true);
       clearInterval(dotTimer);
-    }, PROCESSING_MS);
+      // Brief pause so user sees "Analysis complete!" before navigating
+      setTimeout(() => {
+        if (cancelled) return;
+        router.replace({
+          pathname: '/ai-recommendation' as any,
+          params: {
+            courseId:        recommendation.courseId,
+            courseTitle:     recommendation.courseTitle,
+            courseThumbnail: recommendation.courseThumbnail,
+            courseDuration:  recommendation.courseDuration,
+            totalModules:    String(recommendation.totalModules),
+            reason:          recommendation.reason,
+          },
+        });
+      }, 700);
+    });
 
     return () => {
+      cancelled = true;
       clearInterval(dotTimer);
-      clearTimeout(doneTimer);
     };
   }, []);
 
@@ -319,7 +344,25 @@ export default function AiAnalysisScreen() {
       <View style={[s.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
         <TouchableOpacity
           style={[s.ctaBtn, !done && s.ctaBtnDisabled]}
-          onPress={() => done && router.replace('/(app)/' as any)}
+          onPress={() => {
+            if (!done) return;
+            const rec = recommendationRef.current;
+            if (rec) {
+              router.replace({
+                pathname: '/ai-recommendation' as any,
+                params: {
+                  courseId:        rec.courseId,
+                  courseTitle:     rec.courseTitle,
+                  courseThumbnail: rec.courseThumbnail,
+                  courseDuration:  rec.courseDuration,
+                  totalModules:    String(rec.totalModules),
+                  reason:          rec.reason,
+                },
+              });
+            } else {
+              router.replace('/(app)/' as any);
+            }
+          }}
           activeOpacity={done ? 0.85 : 1}
         >
           <Text style={s.ctaText}>Done</Text>

@@ -100,6 +100,19 @@ const COURSE_DATA: Record<string, CourseData> = {
       { id: 'ch4', index: 4, title: 'The Check-in Move',   duration: '2 min', status: 'quiz'    },
     ],
   },
+  'c-safety': {
+    totalDuration: '15 min',
+    description:
+      'A clear, practical guide through the key safety policies and required protocols for your role. Discover where to find official documentation, how to respond in an emergency, and what to do if you spot a hazard — so you can start confidently and stay compliant.',
+    skills: ['Safety Policies', 'Emergency Procedures', 'Hazard Identification', 'Compliance Documentation'],
+    chapters: [
+      { id: 'ch1', index: 1, title: 'Your Safety Responsibilities',     duration: '3 min', status: 'current' },
+      { id: 'ch2', index: 2, title: 'Emergency Procedures',             duration: '3 min', status: 'locked'  },
+      { id: 'ch3', index: 3, title: 'Hazard Identification & Reporting', duration: '3 min', status: 'locked'  },
+      { id: 'ch4', index: 4, title: 'Where to Find Documentation',      duration: '3 min', status: 'locked'  },
+      { id: 'ch5', index: 5, title: 'Safety Knowledge Check',           duration: '3 min', status: 'quiz'    },
+    ],
+  },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

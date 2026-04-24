@@ -202,10 +202,13 @@ export default function SurveyScreen() {
   function handleContinue() {
     if (!canContinue) return;
     if (isLast) {
-      // Submit — navigate to AI analysis screen, passing the free-text answer
+      // Submit — navigate to AI analysis screen, passing both answers
       router.push({
         pathname: '/ai-analysis' as any,
-        params: { text: answers['q2'] ?? '' },
+        params: {
+          text: answers['q2'] ?? '',
+          q1:   answers['q1'] ?? '',
+        },
       });
     } else {
       setQIndex((i) => i + 1);
