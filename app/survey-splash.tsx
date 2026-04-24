@@ -60,7 +60,7 @@ export default function SurveySplashScreen() {
         </Text>
 
         {/* ── Survey card ──────────────────────────────────────────────────── */}
-        <View style={s.card}>
+        <TouchableOpacity style={s.card} onPress={goToSurvey} activeOpacity={0.85}>
           <View style={s.cardRow}>
             {/* Clipboard icon box */}
             <View style={s.iconBox}>
@@ -83,7 +83,7 @@ export default function SurveySplashScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* ── Bottom CTA ───────────────────────────────────────────────────────── */}
