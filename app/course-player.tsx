@@ -50,10 +50,11 @@ export default function CoursePlayerScreen() {
   const courseId = params.courseId;
   const scormUri = courseId ? getScormUrl(courseId) : params.scormUri;
 
-  const [isMuted,    setIsMuted]    = useState(false);
-  const [isPlaying,  setIsPlaying]  = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [completed,  setCompleted]  = useState(false);
+  const [isMuted,      setIsMuted]      = useState(false);
+  const [isPlaying,    setIsPlaying]    = useState(false);
+  const [bookmarked,   setBookmarked]   = useState(false);
+  const [completed,    setCompleted]    = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const scormRef = useRef<ScormPlayerRef>(null);
 
@@ -61,10 +62,20 @@ export default function CoursePlayerScreen() {
   useEffect(() => {
     ScreenOrientation.unlockAsync().catch(() => {});
     return () => {
-      // Re-lock to portrait when leaving the player
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     };
   }, []);
+
+  // ── Fullscreen toggle — locks to landscape and hides chrome ─────────────
+  async function enterFullscreen() {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_LEFT);
+    setIsFullscreen(true);
+  }
+
+  async function exitFullscreen() {
+    await ScreenOrientation.unlockAsync();
+    setIsFullscreen(false);
+  }
 
   // ── SCORM callbacks ───────────────────────────────────────────────────────
   const handleScormValue = useCallback((key: string, value: string) => {
@@ -74,6 +85,30 @@ export default function CoursePlayerScreen() {
   }, []);
 
   const handleScormComplete = useCallback(() => setCompleted(true), []);
+
+  // ── Fullscreen mode — player edge-to-edge, minimal overlay ──────────────
+  if (isFullscreen) {
+    return (
+      <View style={s.fsRoot}>
+        <StatusBar hidden />
+        <ScormPlayer
+          ref={scormRef}
+          uri={scormUri}
+          onScormValue={handleScormValue}
+          onComplete={handleScormComplete}
+          style={s.player}
+        />
+        {/* Exit fullscreen button — top-right corner */}
+        <TouchableOpacity
+          style={[s.fsExitBtn, { top: insets.top + 12, right: insets.right + 16 }]}
+          onPress={exitFullscreen}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="contract" size={20} color={colors.white} />
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -160,10 +195,15 @@ export default function CoursePlayerScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Captions */}
-          <TouchableOpacity style={s.auxBtn} activeOpacity={0.7}>
-            <Ionicons name="text-outline" size={18} color={colors.gray[500]} />
-          </TouchableOpacity>
+          {/* Right group: captions + fullscreen */}
+          <View style={s.rightGroup}>
+            <TouchableOpacity style={s.auxBtn} activeOpacity={0.7}>
+              <Ionicons name="text-outline" size={18} color={colors.gray[500]} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.auxBtn} onPress={enterFullscreen} activeOpacity={0.7}>
+              <Ionicons name="expand-outline" size={18} color={colors.gray[500]} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* CTA */}
@@ -183,6 +223,18 @@ const s = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#1a1a1a',
+  },
+
+  // Fullscreen mode
+  fsRoot: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  fsExitBtn: {
+    position: 'absolute',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center',
   },
 
   // Nav
@@ -258,4 +310,9 @@ const s = StyleSheet.create({
   },
   ctaBtnDone: { backgroundColor: '#16A34A' },
   ctaText: { fontSize: fontSizes.base, fontWeight: '800', color: colors.white },
+
+  rightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 });
