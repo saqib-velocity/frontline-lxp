@@ -62,6 +62,16 @@ const LEARNING_COURSES: LearningCourse[] = [
     rating: 4.6,
     progress: '00/00',
   },
+  {
+    id: 'c5',
+    title: 'Retail Resilience: Stress Toolkit',
+    thumbnail: 'https://retail-stress-toolkit-scorm.vercel.app/story_content/thumbnail.jpg',
+    duration: '5 min',
+    rating: 4.7,
+    progress: '00/00',
+    dueDate: '01 Jan',
+    dueDateStatus: 'due',
+  },
 ];
 
 // ─── Mock data — Events ────────────────────────────────────────────────────────

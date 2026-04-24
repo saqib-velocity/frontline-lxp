@@ -20,7 +20,7 @@ const MOCK_PLAN: TrainingPlan = {
   title: 'Mandatory training',
   status: 'on-track',
   dueDate: '01 Jan',
-  courses: { total: 4, completed: 0 },
+  courses: { total: 5, completed: 0 },
   events: 3,
   startHereCourse: {
     id: 'c1',
@@ -62,6 +62,14 @@ const MOCK_COURSES: Course[] = [
     thumbnail: 'https://engaging-safely-scorm.vercel.app/story_content/thumbnail.jpg',
     duration: '3 hr',
     rating: 4.6,
+    progress: '0/5',
+  },
+  {
+    id: 'c5',
+    title: 'Retail Resilience: Stress Toolkit',
+    thumbnail: 'https://retail-stress-toolkit-scorm.vercel.app/story_content/thumbnail.jpg',
+    duration: '5 min',
+    rating: 4.7,
     progress: '0/5',
   },
 ];

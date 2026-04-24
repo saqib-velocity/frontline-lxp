@@ -13,10 +13,11 @@
  *   cd /tmp/scorm-content/CheckTheLabel   && vercel deploy --prod
  */
 
-const SHIFTUP_URL          = 'https://shiftup-scorm.vercel.app';
-const CHECK_LABEL_URL      = 'https://check-the-label-scorm.vercel.app';
-const SETTING_TONE_URL     = 'https://setting-the-tone-scorm.vercel.app';
-const ENGAGING_SAFELY_URL  = 'https://engaging-safely-scorm.vercel.app';
+const SHIFTUP_URL           = 'https://shiftup-scorm.vercel.app';
+const CHECK_LABEL_URL       = 'https://check-the-label-scorm.vercel.app';
+const SETTING_TONE_URL      = 'https://setting-the-tone-scorm.vercel.app';
+const ENGAGING_SAFELY_URL   = 'https://engaging-safely-scorm.vercel.app';
+const RETAIL_STRESS_URL     = 'https://retail-stress-toolkit-scorm.vercel.app';
 
 /**
  * Map of courseId → full SCORM launch URL.
@@ -27,8 +28,8 @@ export const SCORM_LAUNCH_FILES: Record<string, string> = {
   c2: `${CHECK_LABEL_URL}/index.html`,        // Check the Label     — Allergen Awareness
   c3: `${SETTING_TONE_URL}/launch.html`,      // Setting the Tone    — Manager Responsibilities (Elucidat)
   c4: `${ENGAGING_SAFELY_URL}/index_lms.html`, // Engaging Safely at the UN (Articulate)
-  c5: `${SHIFTUP_URL}/index_lms.html`,
-  c6: `${SHIFTUP_URL}/index_lms.html`,
+  c5: `${RETAIL_STRESS_URL}/index_lms.html`,  // Retail Stress Toolkit — Retail Resilience
+  c6: `${SHIFTUP_URL}/index_lms.html`,        // placeholder
 };
 
 /** Returns the full SCORM launch URL for a given courseId */

@@ -88,6 +88,18 @@ const COURSE_DATA: Record<string, CourseData> = {
       { id: 'ch5', index: 5, title: 'Responsible Participation',        duration: '45 min', status: 'quiz'    },
     ],
   },
+  c5: {
+    totalDuration: '5 min',
+    description:
+      'A fast, practical four-step toolkit for managing stress on the shop floor — right in the moment. Learn to spot your early warning signs, reset quickly, prioritise what matters, and check in with yourself and your team.',
+    skills: ['Stress Awareness', 'In-the-Moment Reset', 'Prioritisation', 'Team Wellbeing'],
+    chapters: [
+      { id: 'ch1', index: 1, title: 'Early Warning Radar', duration: '1 min', status: 'current' },
+      { id: 'ch2', index: 2, title: 'The 60-Second Reset', duration: '1 min', status: 'locked'  },
+      { id: 'ch3', index: 3, title: 'Three-Task Focus',    duration: '1 min', status: 'locked'  },
+      { id: 'ch4', index: 4, title: 'The Check-in Move',   duration: '2 min', status: 'quiz'    },
+    ],
+  },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
