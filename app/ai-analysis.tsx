@@ -23,6 +23,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  PanResponder,
   StatusBar,
   ScrollView,
 } from 'react-native';
@@ -69,8 +70,8 @@ export default function AiAnalysisScreen() {
   const feedbackText = params.text ?? params.answers ?? '';
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [done,    setDone]    = useState(false);
-  const [dotStep, setDotStep] = useState(0); // 0‥3 for "Processing" → "..."
+  const [done,         setDone]         = useState(false);
+  const [dotStep,      setDotStep]      = useState(0); // 0‥3 for "Processing" → "..."
   const [toastVisible, setToastVisible] = useState(true);
 
   // ── Animation values ───────────────────────────────────────────────────────
@@ -80,6 +81,41 @@ export default function AiAnalysisScreen() {
   const bgFade = useRef(new Animated.Value(0)).current;
   /** 0→1 pulsing — drives text shimmer opacity */
   const pulse  = useRef(new Animated.Value(0.55)).current;
+  /** Toast drag position — translateY for swipe-to-dismiss */
+  const toastY = useRef(new Animated.Value(0)).current;
+
+  // ── Toast swipe-to-dismiss ─────────────────────────────────────────────────
+  function dismissToast() {
+    Animated.timing(toastY, {
+      toValue: -120,
+      duration: 260,
+      useNativeDriver: true,
+    }).start(() => setToastVisible(false));
+  }
+
+  const toastPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 4,
+      onPanResponderMove: (_, g) => {
+        // Only allow upward drag
+        if (g.dy < 0) toastY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy < -40 || g.vy < -0.5) {
+          dismissToast();
+        } else {
+          // Snap back
+          Animated.spring(toastY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 120,
+            friction: 10,
+          }).start();
+        }
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     // ── Colour cycle loop ──────────────────────────────────────────────────
@@ -158,21 +194,24 @@ export default function AiAnalysisScreen() {
     <View style={[s.root, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
 
-      {/* ── Success toast ─────────────────────────────────────────────────── */}
+      {/* ── Success toast — swipe up or tap × to dismiss ──────────────────── */}
       {toastVisible && (
-        <View style={s.toast}>
+        <Animated.View
+          style={[s.toast, { transform: [{ translateY: toastY }] }]}
+          {...toastPan.panHandlers}
+        >
           <Ionicons name="checkmark-circle" size={16} color="#078810" />
           <View style={s.toastBody}>
             <Text style={s.toastTitle}>Survey submitted</Text>
             <Text style={s.toastSub}>Thanks for sharing your feedback!</Text>
           </View>
           <TouchableOpacity
-            onPress={() => setToastVisible(false)}
+            onPress={dismissToast}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="close" size={16} color={colors.gray[900]} />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       )}
 
       {/* ── Nav bar ───────────────────────────────────────────────────────── */}
