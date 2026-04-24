@@ -199,7 +199,7 @@ export default function AiAnalysisScreen() {
           <View style={s.qHeader}>
 
             {/* AI "Processing" tag badge */}
-            <Animated.View style={[s.tagOuter, { borderColor: tagBorderColor }]}>
+            <Animated.View style={s.tagOuter}>
               {/* Gradient background layers — cross-fade between two palettes */}
               <LinearGradient
                 colors={[`${AI.teal}1A`, `${AI.lime}1A`]}
@@ -231,7 +231,7 @@ export default function AiAnalysisScreen() {
             </Animated.View>
 
             {/* Heading — shimmer colour */}
-            <Animated.Text style={[s.heading, { color: headingColor }]}>
+            <Animated.Text style={[s.heading, { color: done ? '#121212' : headingColor }]}>
               {done
                 ? 'Analysis complete!'
                 : `Analyzing your feedback${dots}`}
@@ -358,7 +358,7 @@ const s = StyleSheet.create({
   // Question header
   qHeader: { gap: 8 },
 
-  // AI tag badge
+  // AI tag badge — no border outline
   tagOuter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -366,7 +366,6 @@ const s = StyleSheet.create({
     height: 24,
     paddingHorizontal: 8,
     borderRadius: 12,
-    borderWidth: 1,
     gap: 4,
     overflow: 'hidden',
   },
