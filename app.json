@@ -22,19 +22,32 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#B04500"
       },
-
       "package": "com.learningpool.frontlinelxp"
     },
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
+    "updates": {
+      "url": "https://u.expo.dev/37309e9c-9d16-4c1d-a43d-8b47b50cf96b"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "37309e9c-9d16-4c1d-a43d-8b47b50cf96b"
+      }
+    },
+    "owner": "velocitylp"
   }
 }
