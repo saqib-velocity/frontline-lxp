@@ -9,16 +9,10 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
-      },
-      "env": {
-        "EXPO_PUBLIC_ANTHROPIC_API_KEY": ""
       }
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_ANTHROPIC_API_KEY": ""
-      }
+      "distribution": "internal"
     },
     "production": {
       "autoIncrement": true
