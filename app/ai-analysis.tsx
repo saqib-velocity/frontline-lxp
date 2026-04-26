@@ -155,7 +155,7 @@ export default function AiAnalysisScreen() {
     let cancelled = false;
 
     const minDelay  = new Promise<void>((res) => setTimeout(res, PROCESSING_MS));
-    const apiCall   = analyzeAndRecommend(q1Answer, feedbackText);
+    const apiCall   = analyzeAndRecommend(q1Answer, feedbackText, PROCESSING_MS - 200);
 
     Promise.all([minDelay, apiCall]).then(([, recommendation]) => {
       if (cancelled) return;

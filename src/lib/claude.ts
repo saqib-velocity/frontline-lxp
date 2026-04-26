@@ -126,11 +126,16 @@ Respond with ONLY a valid JSON object — no markdown fences, no explanation out
 /**
  * Calls Claude claude-haiku, selects the best course, and returns a
  * personalised recommendation. Falls back gracefully if the API is
- * unavailable or the key is missing.
+ * unavailable, the key is missing, or the call exceeds `timeoutMs`.
+ *
+ * @param timeoutMs Hard deadline for the API call (default 6 s).
+ *   Pass `PROCESSING_MS - 200` from the caller so the fetch always
+ *   resolves before the animation timer — the screen never hangs.
  */
 export async function analyzeAndRecommend(
   q1Answer: string,
   feedbackText: string,
+  timeoutMs = 6000,
 ): Promise<CourseRecommendation> {
   const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
 
@@ -139,8 +144,13 @@ export async function analyzeAndRecommend(
     return localFallback(q1Answer, feedbackText);
   }
 
+  // ── AbortController enforces the hard deadline ─────────────────────────────
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: controller.signal,
       method: 'POST',
       headers: {
         'Content-Type':      'application/json',
@@ -154,6 +164,7 @@ export async function analyzeAndRecommend(
         messages:   [{ role: 'user', content: buildPrompt(q1Answer, feedbackText) }],
       }),
     });
+    clearTimeout(abortTimer);
 
     if (!response.ok) throw new Error(`API ${response.status}`);
 
@@ -176,6 +187,7 @@ export async function analyzeAndRecommend(
       reason:          parsed.reason ?? defaultReason(matched.title),
     };
   } catch (err) {
+    clearTimeout(abortTimer);
     console.warn('[claude] API error, falling back to local matching:', err);
     return localFallback(q1Answer, feedbackText);
   }
